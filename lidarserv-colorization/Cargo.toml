@@ -1,0 +1,8 @@
+[package]
+name = "lidarserv-colorization"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+las = "0.9"
+image = "0.25.6"
