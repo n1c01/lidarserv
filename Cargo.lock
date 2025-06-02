@@ -2026,6 +2026,7 @@ version = "0.1.0"
 dependencies = [
  "image",
  "las 0.9.3",
+ "lidarserv-common",
 ]
 
 [[package]]

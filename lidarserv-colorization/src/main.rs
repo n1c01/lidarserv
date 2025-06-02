@@ -1,21 +1,44 @@
-use std::io::{BufWriter};
-use std::path::Path;
-use las::{Builder, Color, Point, Reader, Writer};
-use image::{DynamicImage, GenericImageView, ImageReader, Pixel};
+mod picture;
+use crate::picture::Picture;
+
+use image::{GenericImageView, Pixel};
 use las::point::Format;
+use las::{Builder, Reader, Writer};
+use std::io::BufWriter;
+use std::path::Path;
 
 fn main() {
     //resize image
-    let picture_height = 5000;
-    let picture_width = 5000;
-    let path = Path::new( "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_bilder/tina.jpg");
-    let img = read_resize_picture(picture_height, picture_width, path);
+    let path_picture = Path::new(
+        "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_bilder/farbverlauf.jpg",
+    );
+    let path_cloud_out = Path::new(
+        "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/example_color_out.las",
+    );
+    let path_cloud_in = Path::new(
+        "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/example_gen_out.las",
+    );
+
+    //let img = read_resize_picture(picture_height, picture_width, path_picture);
+
+    let picture = Picture::example_picture(path_picture);
+    picture
+        .colorize(
+            create_las_reader(path_cloud_in),
+            create_las_writer(path_cloud_out),
+        )
+        .expect("TODO: panic message");
+
+    /*
+
+    let img = read_resize_picture(picture_height, picture_width, path_picture);
+
 
 
 
     //create point cloud handlers
-    let mut reader = create_las_reader();
-    let mut writer = create_las_writer();
+    let mut reader = create_las_reader(path_cloud_in);
+    let mut writer = create_las_writer(path_cloud_out);
 
 
     //read each point and project color from image
@@ -35,32 +58,28 @@ fn main() {
     //close writer
     writer.close().unwrap_or_else(|e| panic!("Failed to close file: {}", e));
 
-}
 
 
-fn create_las_reader() -> Reader {
-    Reader::from_path(
-        "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/example_gen_out.las")
-        .unwrap_or_else(|e| panic!("Failed to read file: {}", e))
+     */
 }
-fn create_las_writer() -> las::Writer<BufWriter<std::fs::File>> {
+
+fn create_las_reader(path: &Path) -> Reader {
+    Reader::from_path(path).unwrap_or_else(|e| panic!("Failed to read file: {}", e))
+}
+fn create_las_writer(path: &Path) -> las::Writer<BufWriter<std::fs::File>> {
     let mut builder = Builder::from((1, 4));
     builder.point_format = Format::new(2).unwrap();
-    Writer::from_path(
-        "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/example_color_out.las",
-        builder
-            .into_header()
-            .unwrap())
+    Writer::from_path(path, builder.into_header().unwrap())
         .unwrap_or_else(|e| panic!("Failed to write file: {}", e))
 }
 
-
+/*
 fn read_resize_picture(picture_width: u32, picture_height: u32, path: &Path) -> DynamicImage {
     ImageReader::open(path)
         .unwrap_or_else(|e| panic!("Failed to read image: {}", e))
         .decode()
         .unwrap_or_else(|e| panic!("Failed to decode image: {}", e))
-        .resize(picture_width, picture_height, image::imageops::FilterType::Nearest)
+        .resize(picture_width, picture_height, FilterType::Nearest)
 }
 
 
@@ -88,3 +107,5 @@ fn colorize_point(point: &Point, img: &DynamicImage) -> Result<Point, &'static s
         ..Default::default()
     })
 }
+
+ */
