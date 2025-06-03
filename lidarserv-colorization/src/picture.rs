@@ -31,9 +31,8 @@ impl Picture {
             //Find xy position of point in view frustum
             let position = self.find_xy(&point,view_projection).unwrap_or_else(|e| panic!("Failed to find xy position: {}", e));
 
-            //Find Pixel with color to colorize each point
-            let cast_position = Vector2::new(position.x as u32, position.y as u32);
-            let color = self.find_color(cast_position).unwrap_or_else(|e| match e {
+            //Find the Pixel with color to colorize each point
+            let color = self.find_color(position).unwrap_or_else(|e| match e {
                 "Position out of bounds" => {
                     Color::new(0, 50, 50)
                 },
@@ -42,7 +41,7 @@ impl Picture {
 
             //Colorize the point
             let colorized_point = self.colorize_point(&point, color).unwrap_or_else(|e| panic!("Failed to colorize point: {}", e));
-
+            
             //write out the point
             cloud_writer.write_point(colorized_point).unwrap_or_else(|e| panic!("Failed to write point: {}", e))
 
@@ -72,8 +71,12 @@ impl Picture {
         //println!("view_projection_matrix: {:?}", view_projection_matrix);
          */
 
-        let view_proj:OMatrix<f64,Const<4>,U4> = OMatrix::new_translation(&Vector3::new(-2000.,-1000.,0.));
-
+        let translation:OMatrix<f64,Const<4>,U4> = OMatrix::new_translation(&Vector3::new(-1000.,-1000.,0.));
+        let rotation:OMatrix<f64,Const<4>,U4> = OMatrix::new_rotation_wrt_point(Vector3::new(0.3,0.3,0.3),Point3::new(0.,0.,0.));
+        
+        
+        let view_proj = translation * rotation;
+        
         view_proj
     }
 
@@ -87,23 +90,30 @@ impl Picture {
 
 
         let projected_point = view_projection.transform_point(&Point3::new(point.x, point.y, point.z));
-        
-        
+
+
       /*
         println!("new point __________________________________________________________________________");
         println!("Das ist meine Position X: {:?}, Y {:?}, Z {:?}", point.x, point.y, point.z);
         println!("Das ist meine Position projiziert X: {:?}, Y {:?}, Z {:?}", projected_point.x, projected_point.y, projected_point.z);
        */
-        
+
         Ok(Vector2::new(projected_point.x, projected_point.y))
     }
 
-    fn find_color(&self,position:Vector2<u32>) -> Result<Color,&'static str> {
+    fn find_color(&self,position:Vector2<f64>) -> Result<Color,&'static str> {
         //TODO: Do checks
-        if position.x >= self.dynamic_image.width() || position.y >= self.dynamic_image.height() {
+        if position.x >= self.dynamic_image.width() as f64
+            || position.y >= self.dynamic_image.height() as f64
+            || position.x < 0.
+            || position.y < 0.
+        {
             return Err("Position out of bounds")
         }
-        
+        //cast position to match image
+        let position = Vector2::new(position.x as u32, position.y as u32);
+
+
         let pixel_color = self.dynamic_image.get_pixel(position.x, position.y).to_rgb().0;
         Ok(Color::new(pixel_color[0] as u16, pixel_color[1] as u16,pixel_color[2] as u16))
     }
