@@ -10,7 +10,7 @@ use std::path::Path;
 fn main() {
     //resize image
     let path_picture = Path::new(
-        "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_bilder/farbverlauf.jpg",
+        "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_bilder/tina.jpg",
     );
     let path_cloud_out = Path::new(
         "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/example_color_out.las",

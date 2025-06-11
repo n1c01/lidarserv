@@ -2027,6 +2027,7 @@ dependencies = [
  "image",
  "las 0.9.3",
  "lidarserv-common",
+ "log 0.4.27",
 ]
 
 [[package]]
