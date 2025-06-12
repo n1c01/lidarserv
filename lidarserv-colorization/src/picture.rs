@@ -110,7 +110,6 @@ impl Picture {
             Vector4::new(0.0f64,0.0f64,1.0f64,0.0f64),
             Vector4::new(-100.0f64,-100.0f64,-100.0f64,1.0f64)]);
 
-
  */
         let view_proj = view_projection_matrix;
 
@@ -131,10 +130,17 @@ impl Picture {
 
         let projected_point = view_projection.transform_point(&Point3::new(point.x, point.y, point.z));
 
+        //xyz values cut at extreme high or low values
+        let x = projected_point.x.min(100000.).max(-100000.);
+        let y = projected_point.y.min(100000.).max(-100000.);
+        let z = projected_point.z.min(100000.).max(-100000.);
+        
+        //println!("X: {:?}, Y: {:?}, Z: {:?}", x, y, z);
+
         let saved_point = Point {
-            x:point.x,
-            y:point.y,
-            z:point.z,
+            x, 
+            y,
+            z,
             intensity: 9,
             color: Some(Color::new(60,10,100)),
             ..Default::default()
