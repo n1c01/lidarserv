@@ -20,7 +20,7 @@ fn main() {
     );
     let path_cloud_in = Path::new(
         //"C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/example_gen_out.las",
-        "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/Holzkirchen_2_no_color.las"
+        "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/example_gen_out.las"
     );
 
     //let img = read_resize_picture(picture_height, picture_width, path_picture);

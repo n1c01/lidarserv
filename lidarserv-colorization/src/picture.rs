@@ -1,7 +1,7 @@
 use image::imageops::FilterType;
 use image::{DynamicImage, GenericImageView, ImageReader, Pixel};
 use las::{Color, Point, Reader, Writer};
-use lidarserv_common::nalgebra::{Const, Isometry3, OMatrix, Perspective3, Point3, Vector2, Vector3, U4};
+use lidarserv_common::nalgebra::{Const, Isometry3, OMatrix, Perspective3, Point3, RowVector4, Vector2, Vector3, Vector4, U4};
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use std::fs::File;
 use std::io::BufWriter;
@@ -20,71 +20,96 @@ impl Picture {
         &self,
         mut cloud_reader: Reader,
         mut cloud_writer: Writer<BufWriter<File>>,
-        mut proj_cloud_writer: Writer<BufWriter<File>> //TODO: remove when no more need for it
+        mut proj_cloud_writer: Writer<BufWriter<File>>, //TODO: remove when no more need for it
     ) -> Result<&'static str, &'static str> {
-
         let view_projection = self.get_projection();
 
         //Iterate over Cloud reader
-        for point_result in cloud_reader.points(){
-        //cloud_reader.points().for_each(|point_result| {
+        for point_result in cloud_reader.points() {
+            //cloud_reader.points().for_each(|point_result| {
             let point = point_result.unwrap_or_else(|e| panic!("Failed to read point: {}", e));
 
             let position;
             let color;
 
             //Find xy position of point in view frustum
-            match self.find_xy(&point,view_projection, &mut proj_cloud_writer) {
+            match self.find_xy(&point, view_projection, &mut proj_cloud_writer) {
                 Err(e) => {
                     match e {
                         //position is out of frame in relation to the camera (behind the camera)
-                        "Position out of bounds (z-direction)" =>{
+                        "Position out of bounds (z-direction)" => {
                             //skip points that are not represented by the picture
                             continue;
                         }
-                        &_ => { panic!("Failed to find xy position: {:?}", e) }
+                        &_ => {
+                            panic!("Failed to find xy position: {:?}", e)
+                        }
                     }
                 }
-                Ok(p) => { position = p; }
+                Ok(p) => {
+                    position = p;
+                }
             }
 
             //Find the Pixel with color to colorize each point
             match self.find_color(position) {
                 Err(error) => {
                     match error {
-                        "Position out of bounds (xy-direction)" => {
+                        "Position out of bounds (x > picture)" => {
                             //Don't return Points that are not covered by the picture
                             //continue;
                             //TODO: in future (when only accessing relevant points) this should probably return a error
                             //TODO: remove testwise default color for points outside the picture
-                            color = Color::new(20,50,0);
+                            color = Color::new(0, 250, 0);
                         }
-                        &_ => { panic!("{:?}", error) }
+                        "Position out of bounds (x < 0)" => {
+                            //Don't return Points that are not covered by the picture
+                            //continue;
+                            color = Color::new(0, 100, 0);
+                        }
+                        "Position out of bounds (y > picture)" => {
+                            //Don't return Points that are not covered by the picture
+                            //continue;
+                            color = Color::new(0, 0, 250);
+                        }
+                        
+                        "Position out of bounds (y < 0)" => {
+                            //Don't return Points that are not covered by the picture
+                            //continue;
+                            color = Color::new(0, 0, 100);
+                        }
+                        &_ => {
+                            panic!("{:?}", error)
+                        }
                     }
                 }
-                Ok(c) => { color = c; }
+                Ok(c) => {
+                    color = c;
+                }
             }
             //Colorize the point
-            let colorized_point = self.colorize_point(&point, color).unwrap_or_else(|e| panic!("Failed to colorize point: {}", e));
+            let colorized_point = self
+                .colorize_point(&point, color)
+                .unwrap_or_else(|e| panic!("Failed to colorize point: {}", e));
 
             //write out the point
-            cloud_writer.write_point(colorized_point).unwrap_or_else(|e| panic!("Failed to write point: {}", e))
-
+            cloud_writer
+                .write_point(colorized_point)
+                .unwrap_or_else(|e| panic!("Failed to write point: {}", e))
         }
 
         //close the writer
-        cloud_writer.close().unwrap_or_else(|e| panic!("Failed to close writer: {}", e));        
-        proj_cloud_writer.close().unwrap_or_else(|e| panic!("Failed to close projection writer: {}", e));
-
-
-
-
+        cloud_writer
+            .close()
+            .unwrap_or_else(|e| panic!("Failed to close writer: {}", e));
+        proj_cloud_writer
+            .close()
+            .unwrap_or_else(|e| panic!("Failed to close projection writer: {}", e));
 
         Ok("Hat vlt alles funktioniert")
     }
 
-    fn get_projection(& self) -> OMatrix<f64,Const<4>,U4> {
-
+    fn get_projection(&self) -> OMatrix<f64, Const<4>, U4> {
         //TODO:check legal vector alignment
 
         let eye = self.frustum.camera_pos;
@@ -93,102 +118,142 @@ impl Picture {
 
         let view_transform = Isometry3::look_at_rh(&eye, &target, &up);
         let aspect_ratio = self.dynamic_image.width() as f64 / self.dynamic_image.height() as f64;
-        let proj_frustum = Perspective3::new(aspect_ratio, self.frustum.fov_y, self.frustum.z_near, self.frustum.z_far);
+        let proj_frustum = Perspective3::new(
+            aspect_ratio,
+            self.frustum.fov_y,
+            self.frustum.z_near,
+            self.frustum.z_far,
+        );
 
-        let view_projection_matrix = proj_frustum.as_matrix() * view_transform.to_matrix();
-        //let view_projection_matrix_inv = view_transform.inverse().to_matrix() * proj_frustum.inverse();
+        let view_projection_matrix: OMatrix<f64, Const<4>, U4> = proj_frustum.as_matrix() * view_transform.to_matrix();
+        let view_projection_matrix_inv = proj_frustum.inverse() * view_transform.inverse().to_matrix() ;
         println!("view_projection_matrix: {:?}", view_projection_matrix);
 
-/*
         let translation:OMatrix<f64,Const<4>,U4> = OMatrix::new_translation(&Vector3::new(-1000.,-1000.,0.));
         let rotation:OMatrix<f64,Const<4>,U4> = OMatrix::new_rotation_wrt_point(Vector3::new(0.1,0.1,0.1),Point3::new(0.,0.,0.));
         let scaling:OMatrix<f64,Const<4>,U4> = OMatrix::new_scaling(0.5);
 
-        let test_scale:OMatrix<f64,Const<4>,U4> = OMatrix::from_columns(& [
-            Vector4::new(1.0f64, 0.0f64, 0.0f64, 0.0f64),
-            Vector4::new(0.0f64,1.0f64,0.0f64,0.0f64),
-            Vector4::new(0.0f64,0.0f64,1.0f64,0.0f64),
-            Vector4::new(-100.0f64,-100.0f64,-100.0f64,1.0f64)]);
+        let test_scale:OMatrix<f64,U4,Const<4>> = OMatrix::from_rows(& [
+            RowVector4::new(-0.083455190734908813, -0.99480626956417306, -0.05827278245644181, 6.2100728800843541 ),
+            RowVector4::new(0.88182502907790672, -0.046488086288672265, -0.46927974165199771, 16.725405857514271 ),
+            RowVector4::new(0.46413343903574611, -0.090550228431698312, 0.88112473969343208, -58.819855654855907 ),
+            RowVector4::new(0., 0., 0., 1.)]);
+       
+        /*
+        let test_scale:OMatrix<f64,U4,Const<4>> = OMatrix::from(
+            [-0.083455190734908813, -0.99480626956417306, -0.05827278245644181, 6.2100728800843541,
+            0.88182502907790672, -0.046488086288672265, -0.46927974165199771, 16.725405857514271,
+            0.46413343903574611, -0.090550228431698312, 0.88112473969343208, -58.819855654855907,
+            0., 0., 0., 1.]);
+            
+         */
+        /*
+        let test_scale:OMatrix<f64,U4,Const<4>> = OMatrix::from_columns(& [
+            Vector4::new(-0.083455190734908813, -0.99480626956417306, -0.05827278245644181, 6.2100728800843541 ),
+            Vector4::new(0.88182502907790672, -0.046488086288672265, -0.46927974165199771, 16.725405857514271 ),
+            Vector4::new(0.46413343903574611, -0.090550228431698312, 0.88112473969343208, -58.819855654855907 ),
+            Vector4::new(0., 0., 0., 1.)]);
+         */
+        println!("test_scale: {:?}", test_scale);
 
- */
-        let view_proj = view_projection_matrix;
 
-        println!("view projection: {:?}", view_proj);
 
+        //Holzkirchen_DSC02437 matrix:
+        // -0.083455190734908813 -0.99480626956417306 -0.05827278245644181 6.2100728800843541
+        // 0.88182502907790672 -0.046488086288672265 -0.46927974165199771 16.725405857514271
+        // 0.46413343903574611 -0.090550228431698312 0.88112473969343208 -58.819855654855907
+        // 0 0 0 1
+        let view_proj = test_scale;
+
+        //println!("view projection: {:?}", view_proj);
 
         view_proj
     }
 
-
     ///Finds xy position for a point inside a view frustum,
     /// by calculating a projection of the view frustum and then applying the projection to the point.
-    fn find_xy(&self,point: &Point, view_projection: OMatrix<f64,Const<4>,U4>, projection_cloud_writer: &mut Writer<BufWriter<File>>) -> Result<Vector2<f64>,&'static str> {
+    fn find_xy(
+        &self,
+        point: &Point,
+        view_projection: OMatrix<f64, Const<4>, U4>,
+        projection_cloud_writer: &mut Writer<BufWriter<File>>,
+    ) -> Result<Vector2<f64>, &'static str> {
         //TODO: Do checks
 
         //TODO: Check if point is in bounding box
 
-
-        let projected_point = view_projection.transform_point(&Point3::new(point.x, point.y, point.z));
+        let projected_point =
+            view_projection.transform_point(&Point3::new(point.x, point.y, point.z));
 
         //xyz values cut at extreme high or low values
         let x = projected_point.x.min(100000.).max(-100000.);
         let y = projected_point.y.min(100000.).max(-100000.);
         let z = projected_point.z.min(100000.).max(-100000.);
-        
+
         //println!("X: {:?}, Y: {:?}, Z: {:?}", x, y, z);
 
         let saved_point = Point {
-            x, 
+            x,
             y,
             z,
             intensity: 9,
-            color: Some(Color::new(60,10,100)),
+            color: Some(Color::new(60, 10, 100)),
             ..Default::default()
         };
 
-        if projected_point.z < 0. {
-            return Err("Position out of bounds (z-direction)")
-        }
-        projection_cloud_writer.write_point(saved_point).unwrap_or_else(|e| panic!("Failed to write point: {}", e));
-
-
-
         /*
-          println!("new point __________________________________________________________________________");
-          println!("Das ist meine Position X: {:?}, Y {:?}, Z {:?}", point.x, point.y, point.z);
-          println!("Das ist meine Position projiziert X: {:?}, Y {:?}, Z {:?}", projected_point.x, projected_point.y, projected_point.z);
-         */
+        if projected_point.z < 0. {
+            return Err("Position out of bounds (z-direction)");
+        }   
+        */
+        projection_cloud_writer
+            .write_point(saved_point)
+            .unwrap_or_else(|e| panic!("Failed to write point: {}", e));
 
         Ok(Vector2::new(projected_point.x, projected_point.y))
     }
 
-    fn find_color(&self,position:Vector2<f64>) -> Result<Color,&'static str> {
+    fn find_color(&self, position: Vector2<f64>) -> Result<Color, &'static str> {
         //TODO: Do checks
-        if position.x >= self.dynamic_image.width() as f64
-            || position.y >= self.dynamic_image.height() as f64
-            || position.x < 0.
-            || position.y < 0.
-        {
-            return Err("Position out of bounds (xy-direction)")
+        if position.x >= self.dynamic_image.width() as f64{
+            return Err("Position out of bounds (x > picture)");
         }
-
+        if position.y >= self.dynamic_image.height() as f64
+        {
+            return Err("Position out of bounds (y > picture)");
+        }
+        if position.x < 0.
+        {
+            return Err("Position out of bounds (x < 0)");
+        }
+        if position.y < 0.
+        {
+            return Err("Position out of bounds (y < 0)");
+        }
 
         //cast position to match image
         let position = Vector2::new(position.x as u32, position.y as u32);
 
-
-        let pixel_color = self.dynamic_image.get_pixel(position.x, position.y).to_rgb().0;
-        Ok(Color::new(pixel_color[0] as u16, pixel_color[1] as u16,pixel_color[2] as u16))
+        let pixel_color = self
+            .dynamic_image
+            .get_pixel(position.x, position.y)
+            .to_rgb()
+            .0;
+        Ok(Color::new(
+            pixel_color[0] as u16,
+            pixel_color[1] as u16,
+            pixel_color[2] as u16,
+        ))
     }
 
-    fn colorize_point(&self, point: &Point, color: Color) -> Result<Point,&'static str> {
+    fn colorize_point(&self, point: &Point, color: Color) -> Result<Point, &'static str> {
         //TODO: Do checks
         //println!("Das ist meine Farbe {:?}", color);
         //let color = Color::new(point.x as u16 % 255 , point.y as u16 % 255 ,point.z as u16 % 255 );
         Ok(Point {
-            x:point.x,
-            y:point.y,
-            z:point.z,
+            x: point.x,
+            y: point.y,
+            z: point.z,
             intensity: 9,
             color: Some(color),
             ..Default::default()
@@ -208,9 +273,9 @@ impl Picture {
 
         let frustum = ViewFrustumQuery {
             camera_pos: Point3::new(-1., -4., 0.),
-            camera_dir: Vector3::new(2., -6., 0.1),
+            camera_dir: Vector3::new(2.5, -3., -2.3),
             camera_up: Vector3::new(0., 0., 1.),
-            fov_y: 0.001,
+            fov_y: 0.003,
             z_near: 0.0,
             z_far: 1000.0,
             window_size,
@@ -232,4 +297,3 @@ impl Picture {
         }
     }
 }
-
