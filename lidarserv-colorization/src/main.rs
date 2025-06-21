@@ -1,5 +1,5 @@
-mod picture;
-use crate::picture::Picture;
+mod point_cloud_colorizer;
+use crate::point_cloud_colorizer::PointCloudColorizer;
 
 use las::point::Format;
 use las::{Builder, Reader, Writer};
@@ -15,9 +15,12 @@ fn main() {
     let path_cloud_out = Path::new(
         "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/example_color_out.las",
     );
+    
+    /*
     let path_projected_cloud_out = Path::new(
         "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/example_projection_out.las",
     );
+     */
     let path_cloud_in = Path::new(
         //"C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/example_gen_out.las",
         "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/example_gen_out.las"
@@ -25,12 +28,11 @@ fn main() {
 
     //let img = read_resize_picture(picture_height, picture_width, path_picture);
 
-    let picture = Picture::example_picture(path_picture);
+    let picture = PointCloudColorizer::example_picture(path_picture);
     picture
         .colorize(
             create_las_reader(path_cloud_in),
-            create_las_writer(path_cloud_out),
-            create_las_writer(path_projected_cloud_out)
+            create_las_writer(path_cloud_out)
         )
         .expect("TODO: panic message");
 }
