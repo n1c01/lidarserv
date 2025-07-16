@@ -108,7 +108,7 @@ impl PointCloudColorizer {
             .close()
             .unwrap_or_else(|e| panic!("Failed to close writer: {}", e));
         
-        Ok("Hat vlt alles funktioniert")
+        Ok("Done")
     }
     
     ///Get the projection matrix for the picture
@@ -283,7 +283,7 @@ impl PointCloudColorizer {
     fn colorize_point(&self, point: &Point, color: Color) -> Result<Point, &'static str> {
         //TODO: Do checks
         //println!("Das ist meine Farbe {:?}", color);
-        //let color = Color::new(point.x as u16 % 255 , point.y as u16 % 255 ,point.z as u16 % 255 );
+        //let color = Color::new(point.x as u16 % 255, point.y as u16 % 255, point.z as u16 % 255 );
         Ok(Point {
             x: point.x,
             y: point.y,
