@@ -29,8 +29,8 @@ pub fn init_colorize() {
     let picture = PointCloudColorizer::example_picture(path_picture);
     picture
         .colorize(
-            crate::create_las_reader(path_cloud_in),
-            crate::create_las_writer(path_cloud_out)
+            create_las_reader(path_cloud_in),
+            create_las_writer(path_cloud_out)
         )
         .expect("TODO: panic message");
 }
