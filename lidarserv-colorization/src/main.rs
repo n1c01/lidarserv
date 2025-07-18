@@ -10,8 +10,17 @@ use std::io::BufWriter;
 use std::path::Path;
 
 fn main() {
-
-
+    //ROS connection Thread
+    
+    //Processing frustum Thread
+    
+    //LidarServ query Thread
+    
+    //LidarServ answer Thread
+    
+    //Processing colorization Thread
     //init_colorize();
+    
+    //LidarServ save Thread
 
 }
