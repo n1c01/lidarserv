@@ -1,17 +1,23 @@
 use std::process::ExitCode;
-use std::sync::mpsc;
+use std::sync::atomic::Ordering;
+use std::sync::{mpsc, Arc};
 use std::sync::mpsc::channel;
-use anyhow::Context;
+use std::thread;
+use anyhow::{Context, Error};
 use clap::Parser;
 use cli::AppOptions;
 use rosrust::api::resolve::get_unused_args;
 use log::{debug, error, info};
 use tokio::sync::broadcast;
+use crate::color_threads::ros::ros_thread;
+use crate::color_threads::status::{status_thread, Status};
+use anyhow::Result;
+
 
 mod cli;
 mod point_cloud_colorizer;
 mod init_colorize;
-mod ros;
+mod color_threads;
 
 fn main() -> ExitCode {
     // arg parsing
@@ -29,18 +35,16 @@ fn main() -> ExitCode {
         }
     }
 }
-
-fn run(args: AppOptions) -> Result<(),String>{
-    //install the signal handler 
+fn run(args: AppOptions) -> Result<(), Error>{
+    //install the signal handler
     //preparing transmitters and receivers for stoping the program when Strg+c is pressed
     let (stop_status_tx, stop_status_rx) = mpsc::channel();
     let (stop_processing_frustum_tx, stop_processing_frustum_rx) = mpsc::channel();
     let (stop_ros_read_tx, stop_ros_read_rx) = mpsc::channel();
-    let (stop_lidarserv_query_tx, stop_lidarserv_query_rx) = tokio::sync::broadcast::channel(1); //TODO: Think about channeltype
-    let (stop_lidarserv_answer_tx, stop_lidarserv_answer_rx) = mpsc::channel(); 
+    let (stop_lidarserv_query_tx, stop_lidarserv_query_rx) = tokio::sync::broadcast::channel(1); //only one message sent therefore capacity one
+    let (stop_lidarserv_answer_tx, stop_lidarserv_answer_rx) = mpsc::channel();
     let (stop_processing_colorization_tx, stop_processing_colorization_rx) = mpsc::channel();
     let (stop_lidarserv_write_tx, stop_lidarserv_write_rx) = mpsc::channel();
-    
     
     let (exit_tx, exit_rx) = channel();
     {
@@ -59,35 +63,117 @@ fn run(args: AppOptions) -> Result<(),String>{
                 stop_processing_colorization_tx.send(()).ok();
                 stop_lidarserv_write_tx.send(()).ok();
             }
-        })
-            .context("Failed to install Ctrl+C signal handler.")?;
+        }).expect("Failed to initialize Ctrl+C Handler");
         info!("Press Ctrl+C to exit.");
     }
-    
-    
+
+
     //ROS read connection Thread
     //sender: images from ROS
     //sender: positions of the camera from ROS
     //TODO: ROS Thread, that reads out the images and the positions of the camera
-    
-    
+    let (commands_tx, commands_rx) = mpsc::channel();
+    let (image_data_tx, image_data_rx) = mpsc::channel();
+    let status = Arc::new(Status::default());
+    let join_ros = {
+        let exit_tx = exit_tx.clone();
+        let args = args.clone();
+        thread::spawn(move || {
+            //todo!("ROS Thread")
+            ros_thread(args,commands_rx,image_data_tx).ok()?;
+            exit_tx.send(()).ok()
+            
+        })
+    };
+
     //Processing frustum Thread
     //TODO: Processing Thread, that processes the camera position and calculates the frustum
-    
+    let join_processing_frustum = {
+        thread::spawn(move || {
+            //todo!("Processing frustum Thread")
+        })
+    };
+
     //LidarServ query Thread
     //TODO: LidarServ Thread, that queries the frustum to retrieve the points from the lidarserv server
-    
+    let join_lidarserv_query = {
+        thread::spawn(move || {
+            //todo!("lidarserv query thread")
+        })
+    };
+
     //LidarServ answer Thread
     //TODO: LidarServ Thread, that recieves the points from the lidarserv server and sends them to the colorization thread
+    let join_lidarserv_answer = {
+        thread::spawn(move || {
+            //todo!("lidarserv answer thread")
+        })
+    };
+    
     
     //Processing colorization Thread
     //TODO: Processing Thread, that colorizes the points
-    //init_colorize();
+    let join_colorization = {
+        thread::spawn(move || {
+            //todo!("colorization thread")
+            //init_colorize();
+        })
+    };
     
-    //LidarServ save Thread
+    
+    //LidarServ store Thread
     //TODO: LidarServ Thread, that sends the processed points to the lidarserv server
+    let join_lidarserv_store = {
+        thread::spawn(move || {
+            //todo!("lidarserv store thread")
+        })
+    };
     
     //Status Thread
+    let join_status = {
+        let status = Arc::clone(&status);
+        thread::spawn(move || {
+            status_thread(status, stop_status_rx);
+        })
+    };
     
-    return Ok(());
+
+    // wait for exit (user pressed ctrl+c, or one of the thread terminated unexpectedly)
+    exit_rx.recv().unwrap();
+    let term = console::Term::stdout();
+    if !term.features().is_attended() {
+        info!("Shutting down...");
+    } else {
+        term.write_line("[⏹] Shutting down...").unwrap();
+        term.move_cursor_up(1).ok();
+    }
+    status.shutdown.store(true, Ordering::Relaxed);
+
+    //stop ROS read connection Thread
+    commands_tx.send(color_threads::ros::Command::Exit).ok();
+    join_ros.join().unwrap();
+
+    //stop Processing frustum Thread
+    join_processing_frustum.join().unwrap();
+
+    //stop LidarServ query Thread
+    join_lidarserv_query.join().unwrap();
+
+    //stop LidarServ answer Thread
+    join_lidarserv_answer.join().unwrap();
+    
+    //stop Processing colorization Thread
+    join_colorization.join().unwrap();
+    
+    //stop LidarServ store Thread
+    join_lidarserv_store.join().unwrap();
+
+    //stop status Thread
+    join_status.join().unwrap();
+
+    // Be polite.
+    info!("Bye. 👋");
+
+    // We are done.
+    Ok(())
 }

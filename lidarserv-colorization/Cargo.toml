@@ -12,5 +12,6 @@ rosrust = "0.9.12"
 simple_logger = "5.0"
 anyhow = "1.0.98"
 clap = { version = "4.5.41", features = ["derive"] }
-tokio = "1.46.1"
+tokio = { version = "1.46.1", features = ["full"] }
 ctrlc = "3.4.7"
+console = "0.16.0"
