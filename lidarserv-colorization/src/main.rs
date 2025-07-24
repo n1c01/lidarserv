@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Display};
 use std::process::ExitCode;
 use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc};
@@ -81,7 +82,7 @@ fn run(args: AppOptions) -> Result<(), Error>{
         let args = args.clone();
         thread::spawn(move || {
             //todo!("ROS Thread")
-            ros_thread(args,commands_rx,image_data_tx, status1).ok()?;
+            ros_thread(args,commands_rx,image_data_tx, status1).log_error();
             exit_tx.send(()).ok()
             
         })
@@ -177,4 +178,28 @@ fn run(args: AppOptions) -> Result<(), Error>{
 
     // We are done.
     Ok(())
+}
+
+
+trait LogErrors {
+    type Ok;
+    fn log_error(self) -> Option<Self::Ok>;
+}
+
+impl<T, E> LogErrors for Result<T, E>
+where
+    E: Display + Debug,
+{
+    type Ok = T;
+
+    fn log_error(self) -> Option<T> {
+        match self {
+            Ok(v) => Some(v),
+            Err(e) => {
+                error!("{e}");
+                debug!("{e:?}");
+                None
+            }
+        }
+    }
 }
