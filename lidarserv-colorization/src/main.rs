@@ -75,12 +75,13 @@ fn run(args: AppOptions) -> Result<(), Error>{
     let (commands_tx, commands_rx) = mpsc::channel();
     let (image_data_tx, image_data_rx) = mpsc::channel();
     let status = Arc::new(Status::default());
+    let status1 = Arc::clone(&status);
     let join_ros = {
         let exit_tx = exit_tx.clone();
         let args = args.clone();
         thread::spawn(move || {
             //todo!("ROS Thread")
-            ros_thread(args,commands_rx,image_data_tx).ok()?;
+            ros_thread(args,commands_rx,image_data_tx, status1).ok()?;
             exit_tx.send(()).ok()
             
         })
