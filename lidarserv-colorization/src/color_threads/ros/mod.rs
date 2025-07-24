@@ -1,4 +1,5 @@
 use std::sync::{mpsc, Arc};
+use std::time::Duration;
 use crate::cli::AppOptions;
 use anyhow::Result;
 use crate::color_threads::status::Status;
@@ -22,5 +23,7 @@ pub enum Command {
 
 pub struct ImageData {
     pub image: Vec<u8>,
-    pub timestamp: u64,
+    pub width: u32,
+    pub height: u32,
+    pub timestamp: Duration,
 }

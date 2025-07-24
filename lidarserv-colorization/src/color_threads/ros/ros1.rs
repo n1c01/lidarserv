@@ -2,11 +2,13 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
+use std::time::Duration;
 use anyhow::{anyhow, Error};
 use crate::cli::AppOptions;
 use crate::color_threads::ros::{Command, ImageData};
 use anyhow::Result;
 use log::{info, trace};
+use crate::color_threads::ros::ros1::messages::sensor_msgs::Image;
 use crate::color_threads::status::Status;
 
 pub(crate) fn ros_thread(app_options: AppOptions,
@@ -33,12 +35,9 @@ pub(crate) fn ros_thread(app_options: AppOptions,
 
     let image_callback = move |msg: messages::sensor_msgs::Image| {
         trace!("image message: {msg:?}");
-        status1.nr_rx_msg_tf.fetch_add(1, Ordering::Relaxed);
-        /*
-        for image in parse_image_message(msg, true) {
-            transforms_tx_clone.send(tf).ok();
-        }
-         */
+        status1.nr_rx_msg_image.fetch_add(1, Ordering::Relaxed); //add 1 more image message to the counter
+        
+        image_tx.send(parse_image_message(msg)).ok();
     };
     let _image_subscriber = match rosrust::subscribe(&image_topic, 100, image_callback) {
         Ok(s) => s,
@@ -65,12 +64,15 @@ pub(crate) fn ros_thread(app_options: AppOptions,
     rosrust::spin();
     Ok(())
 }
-/*
-fn parse_image_message(p0: _, p1: bool) -> _ {
-    todo!()
-}
 
- */
+fn parse_image_message(msg: Image) -> ImageData {
+    ImageData{
+        image: msg.data,
+        width : msg.width,
+        height : msg.height,
+        timestamp : Duration::new(msg.header.stamp.sec as u64, msg.header.stamp.nsec),
+    }
+}
 
 
 mod messages {

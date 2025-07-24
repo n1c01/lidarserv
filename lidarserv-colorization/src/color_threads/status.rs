@@ -17,8 +17,7 @@ pub struct Status {
     //TODO: Check if this is really needed.
     pub paused: AtomicBool,
     pub shutdown: AtomicBool,
-    pub nr_rx_msg_pointcloud: AtomicU64,
-    pub nr_rx_msg_tf: AtomicU64,
+    pub nr_rx_msg_image: AtomicU64,
     pub nr_rx_points: AtomicU64,
     pub nr_process_in: AtomicU64,
     pub nr_process_out: AtomicU64,
@@ -36,15 +35,14 @@ pub fn  status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
     }
 
     while let Err(RecvTimeoutError::Timeout) = shutdown_rx.recv_timeout(Duration::from_secs(1)) {
-        let rx_msg = status.nr_rx_msg_pointcloud.swap(0, Ordering::Relaxed);
-        let rx_tf = status.nr_rx_msg_tf.swap(0, Ordering::Relaxed);
+        let rx_msg_image = status.nr_rx_msg_image.swap(0, Ordering::Relaxed);
         let rx_pts = status.nr_rx_points.swap(0, Ordering::Relaxed);
         let nr_process_in = status.nr_process_in.swap(0, Ordering::Relaxed);
         let nr_process_out = status.nr_process_out.swap(0, Ordering::Relaxed);
         let nr_tx_msg = status.nr_tx_msg.swap(0, Ordering::Relaxed);
         let paused = status.paused.load(Ordering::Relaxed);
         let shutdown = status.shutdown.load(Ordering::Relaxed);
-        buffer1 += rx_msg as i64;
+        buffer1 += rx_msg_image as i64;
         buffer1 -= nr_process_in as i64;
         buffer2 += nr_process_out as i64;
         buffer2 -= nr_tx_msg as i64;
@@ -65,13 +63,13 @@ pub fn  status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
         } else {
             ""
         };
-        let rx_part = if all_stopped && rx_msg == 0 {
+        let rx_part = if all_stopped && rx_msg_image == 0 {
             stop_reason.to_string()
         } else {
             all_stopped = false;
             format!(
-                "{:3} msg/s {:6} pts/s | tf: {:3} msg/s",
-                rx_msg, rx_pts, rx_tf,
+                "{:3} msg/s {:6} pts/s",
+                rx_msg_image, rx_pts,
             )
         };
         let process_part = if all_stopped && buffer1 == 0 && nr_process_out == 0 {
