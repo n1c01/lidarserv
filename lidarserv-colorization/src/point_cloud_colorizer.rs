@@ -1,12 +1,13 @@
 use image::imageops::FilterType;
 use image::{DynamicImage, GenericImageView, ImageReader, Pixel};
 use las::{Color, Point, Reader, Writer};
-use lidarserv_common::nalgebra::{Const, Isometry3, OMatrix, Perspective3, Point3, RowVector4, Vector2, Vector3, U4};
+use lidarserv_common::nalgebra::{
+    Const, Isometry3, OMatrix, Perspective3, Point3, RowVector4, Vector2, Vector3, U4,
+};
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
-
 
 /// The picture struct holds a view frustum and a corresponding dynamic image
 pub struct PointCloudColorizer {
@@ -15,16 +16,16 @@ pub struct PointCloudColorizer {
 
     ///the image for the frustum
     dynamic_image: DynamicImage,
-    
 }
 
 /// The implementation of the picture struct.
 /// The picture struct is used to project a picture onto a point cloud
 impl PointCloudColorizer {
     /// Colorizes a point cloud (cloud_reader) with the picture (self) and outputs it (cloud_writer)
-    pub fn colorize(&self,
-                    mut cloud_reader: Reader,
-                    mut cloud_writer: Writer<BufWriter<File>>,
+    pub fn colorize(
+        &self,
+        mut cloud_reader: Reader,
+        mut cloud_writer: Writer<BufWriter<File>>,
     ) -> Result<&'static str, &'static str> {
         //Get the projection matrix to transform the points to the picture frustum
         let view_projection = self.get_projection();
@@ -77,7 +78,7 @@ impl PointCloudColorizer {
                             //continue;
                             color = Color::new(0, 0, 250);
                         }
-                        
+
                         "Position out of bounds (y < 0)" => {
                             //Don't return Points that are not covered by the picture
                             //continue;
@@ -107,14 +108,14 @@ impl PointCloudColorizer {
         cloud_writer
             .close()
             .unwrap_or_else(|e| panic!("Failed to close writer: {}", e));
-        
+
         Ok("Done")
     }
-    
+
     ///Get the projection matrix for the picture
-    /// # attributes 
+    /// # attributes
     /// - self: The picture struct
-    /// 
+    ///
     /// # returns
     /// The projection matrix used to transform the points to the picture frustum
     fn get_projection(&self) -> OMatrix<f64, Const<4>, U4> {
@@ -133,27 +134,47 @@ impl PointCloudColorizer {
             self.frustum.z_far,
         );
 
-        let view_projection_matrix: OMatrix<f64, Const<4>, U4> = proj_frustum.as_matrix() * view_transform.to_matrix();
-        let view_projection_matrix_inv = proj_frustum.inverse() * view_transform.inverse().to_matrix() ;
+        let view_projection_matrix: OMatrix<f64, Const<4>, U4> =
+            proj_frustum.as_matrix() * view_transform.to_matrix();
+        let view_projection_matrix_inv =
+            proj_frustum.inverse() * view_transform.inverse().to_matrix();
         println!("view_projection_matrix: {:?}", view_projection_matrix);
 
-        let translation:OMatrix<f64,Const<4>,U4> = OMatrix::new_translation(&Vector3::new(-1000.,-1000.,0.));
-        let rotation:OMatrix<f64,Const<4>,U4> = OMatrix::new_rotation_wrt_point(Vector3::new(0.1,0.1,0.1),Point3::new(0.,0.,0.));
-        let scaling:OMatrix<f64,Const<4>,U4> = OMatrix::new_scaling(0.5);
+        let translation: OMatrix<f64, Const<4>, U4> =
+            OMatrix::new_translation(&Vector3::new(-1000., -1000., 0.));
+        let rotation: OMatrix<f64, Const<4>, U4> =
+            OMatrix::new_rotation_wrt_point(Vector3::new(0.1, 0.1, 0.1), Point3::new(0., 0., 0.));
+        let scaling: OMatrix<f64, Const<4>, U4> = OMatrix::new_scaling(0.5);
 
-        let test_scale:OMatrix<f64,U4,Const<4>> = OMatrix::from_rows(& [
-            RowVector4::new(-0.083455190734908813, -0.99480626956417306, -0.05827278245644181, 6.2100728800843541 ),
-            RowVector4::new(0.88182502907790672, -0.046488086288672265, -0.46927974165199771, 16.725405857514271 ),
-            RowVector4::new(0.46413343903574611, -0.090550228431698312, 0.88112473969343208, -58.819855654855907 ),
-            RowVector4::new(0., 0., 0., 1.)]);
-       
+        let test_scale: OMatrix<f64, U4, Const<4>> = OMatrix::from_rows(&[
+            RowVector4::new(
+                -0.083455190734908813,
+                -0.99480626956417306,
+                -0.05827278245644181,
+                6.2100728800843541,
+            ),
+            RowVector4::new(
+                0.88182502907790672,
+                -0.046488086288672265,
+                -0.46927974165199771,
+                16.725405857514271,
+            ),
+            RowVector4::new(
+                0.46413343903574611,
+                -0.090550228431698312,
+                0.88112473969343208,
+                -58.819855654855907,
+            ),
+            RowVector4::new(0., 0., 0., 1.),
+        ]);
+
         /*
         let test_scale:OMatrix<f64,U4,Const<4>> = OMatrix::from(
             [-0.083455190734908813, -0.99480626956417306, -0.05827278245644181, 6.2100728800843541,
             0.88182502907790672, -0.046488086288672265, -0.46927974165199771, 16.725405857514271,
             0.46413343903574611, -0.090550228431698312, 0.88112473969343208, -58.819855654855907,
             0., 0., 0., 1.]);
-            
+
          */
         /*
         let test_scale:OMatrix<f64,U4,Const<4>> = OMatrix::from_columns(& [
@@ -163,8 +184,6 @@ impl PointCloudColorizer {
             Vector4::new(0., 0., 0., 1.)]);
          */
         println!("test_scale: {:?}", test_scale);
-
-
 
         //Holzkirchen_DSC02437 matrix:
         // -0.083455190734908813 -0.99480626956417306 -0.05827278245644181 6.2100728800843541
@@ -180,7 +199,7 @@ impl PointCloudColorizer {
 
     /// Finds xy position for a point inside a view frustum,
     /// by calculating a projection of the view frustum and then applying the projection to the point.
-    /// 
+    ///
     /// # attributes
     /// - self
     /// - The point of which the position should be found
@@ -218,13 +237,13 @@ impl PointCloudColorizer {
         /*
         if projected_point.z < 0. {
             return Err("Position out of bounds (z-direction)");
-        }   
+        }
         */
         /*
         projection_cloud_writer
             .write_point(saved_point)
             .unwrap_or_else(|e| panic!("Failed to write point: {}", e));
-            
+
          */
 
         Ok(Vector2::new(projected_point.x, projected_point.y))
@@ -242,19 +261,14 @@ impl PointCloudColorizer {
     /// - "Position out of bounds (y > picture)"
     fn find_color(&self, position: Vector2<f64>) -> Result<Color, &'static str> {
         //TODO: Do checks
-        if position.x >= self.dynamic_image.width() as f64{
+        if position.x >= self.dynamic_image.width() as f64 {
             return Err("Position out of bounds (x > picture)");
-        }
-        else if position.x < 0.
-        {
+        } else if position.x < 0. {
             return Err("Position out of bounds (x < 0)");
         }
-        if position.y >= self.dynamic_image.height() as f64
-        {
+        if position.y >= self.dynamic_image.height() as f64 {
             return Err("Position out of bounds (y > picture)");
-        }
-        else if position.y < 0.
-        {
+        } else if position.y < 0. {
             return Err("Position out of bounds (y < 0)");
         }
 
@@ -301,7 +315,7 @@ impl PointCloudColorizer {
 
          */
     }
-    
+
     /// Creates a picture struct from a path to a picture
     /// # attributes
     /// - path: The path to the picture

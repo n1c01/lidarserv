@@ -1,6 +1,3 @@
-use std::str::FromStr;
-
-use anyhow::anyhow;
 use clap::Parser;
 
 /// Connector that forwards point clouds from ROS into lidarserv.
@@ -24,7 +21,7 @@ pub struct AppOptions {
     /// Verbosity of the command line output.
     #[clap(long, default_value = "info")]
     pub log_level: log::Level,
-    
+
     /// Vector of the ROS topics where the image messages will be published to.
     #[clap(long, default_values = &["/Cam1_Image","/Cam2_Image","/Cam3_Image"])]
     pub image_topics: Vec<String>,
@@ -42,6 +39,4 @@ pub struct AppOptions {
     /// Port of the lidarserv server
     #[clap(long, default_value = "4567")]
     pub port: u16,
-    
 }
-

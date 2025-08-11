@@ -1,8 +1,8 @@
+use crate::cli::AppOptions;
+use crate::color_threads::status::Status;
+use anyhow::Result;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
-use crate::cli::AppOptions;
-use anyhow::Result;
-use crate::color_threads::status::Status;
 
 mod ros1;
 

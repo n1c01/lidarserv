@@ -1,14 +1,14 @@
+use crate::point_cloud_colorizer::PointCloudColorizer;
+use las::point::Format;
+use las::{Builder, Reader, Writer};
 use std::io::BufWriter;
 use std::path::Path;
-use las::{Builder, Reader, Writer};
-use las::point::Format;
-use crate::point_cloud_colorizer::PointCloudColorizer;
 
 pub fn init_colorize() {
     //resize image
     let path_picture = Path::new(
         //"C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_bilder/tina.jpg",
-        "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_bilder/Holzkirchen_DSC02437.JPG"
+        "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_bilder/Holzkirchen_DSC02437.JPG",
     );
     let path_cloud_out = Path::new(
         "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/example_color_out.las",
@@ -21,7 +21,7 @@ pub fn init_colorize() {
      */
     let path_cloud_in = Path::new(
         //"C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/example_gen_out.las",
-        "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/example_gen_out.las"
+        "C:/Users/User/OneDrive/Dokumente/Informatikstudium_TUD/6_Semester/Bachelorarbeit/Daten/test_clouds/example_gen_out.las",
     );
 
     //let img = read_resize_picture(picture_height, picture_width, path_picture);
@@ -30,7 +30,7 @@ pub fn init_colorize() {
     picture
         .colorize(
             create_las_reader(path_cloud_in),
-            create_las_writer(path_cloud_out)
+            create_las_writer(path_cloud_out),
         )
         .expect("TODO: panic message");
 }

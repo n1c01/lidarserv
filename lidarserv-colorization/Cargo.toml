@@ -15,3 +15,4 @@ clap = { version = "4.5.41", features = ["derive"] }
 tokio = { version = "1.46.1", features = ["full"] }
 ctrlc = "3.4.7"
 console = "0.16.0"
+error = "0.1.9"

@@ -23,7 +23,7 @@ pub struct Status {
     pub nr_tx_msg: AtomicU64,
 }
 
-pub fn  status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
+pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
     let mut buffer1: i64 = 0; // signed integers, because we use relaxed ordering for the atomic counters, so we could observe the increment of the counter that removes messages from the buffer before the one that inserts messages into the buffer.
     let mut buffer2: i64 = 0;
     let mut all_stopped_prev = false;
@@ -65,10 +65,7 @@ pub fn  status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
             stop_reason.to_string()
         } else {
             all_stopped = false;
-            format!(
-                "{:3} msg/s",
-                rx_msg_image,
-            )
+            format!("{:3} msg/s", rx_msg_image,)
         };
         let process_part = if all_stopped && buffer1 == 0 && nr_process_out == 0 {
             stop_reason.to_string()

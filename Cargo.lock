@@ -1095,6 +1095,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "error"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6e606f14042bb87cc02ef6a14db6c90ab92ed6f62d87e69377bc759fd7987cc"
+dependencies = [
+ "traitobject",
+ "typeable",
+]
+
+[[package]]
 name = "error-chain"
 version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2075,6 +2085,7 @@ dependencies = [
  "clap 4.5.41",
  "console 0.16.0",
  "ctrlc",
+ "error",
  "image",
  "las 0.9.3",
  "lidarserv-common",

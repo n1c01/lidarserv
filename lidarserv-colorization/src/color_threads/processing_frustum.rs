@@ -1,8 +1,10 @@
-use std::sync::{mpsc, Arc};
-use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use crate::cli::AppOptions;
 use crate::color_threads::ros::{Command, ImageData};
 use crate::color_threads::status::Status;
+use anyhow::{anyhow, Error};
+use lidarserv_common::query::view_frustum::ViewFrustumQuery;
+use log::{debug, error};
+use std::sync::{mpsc, Arc};
 
 pub fn process_frustum_thread(
     args: AppOptions,
@@ -10,7 +12,12 @@ pub fn process_frustum_thread(
     frustum_data_tx: mpsc::Sender<ViewFrustumQuery>,
     status: Arc<Status>,
 ) -> anyhow::Result<()> {
-    todo!("turn Image Data into ViewFrustumQuery")
+    debug!("process_frustum_thread is started");
+
+    //todo!("turn Image Data into ViewFrustumQuery")
+
+    debug!("process_frustum_thread is finished");
+    return Err(anyhow!("process_frusutum_thread not jet implemented"));
 }
 /*
 Query::ViewFrustum(ViewFrustumQuery {

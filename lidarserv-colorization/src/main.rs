@@ -1,25 +1,25 @@
-use std::fmt::{Debug, Display};
-use std::process::ExitCode;
-use std::sync::atomic::Ordering;
-use std::sync::{mpsc, Arc};
-use std::sync::mpsc::channel;
-use std::thread;
+use crate::color_threads::processing_frustum;
+use crate::color_threads::processing_frustum::process_frustum_thread;
+use crate::color_threads::ros::ros_thread;
+use crate::color_threads::status::{status_thread, Status};
+use anyhow::Result;
 use anyhow::{Context, Error};
 use clap::Parser;
 use cli::AppOptions;
-use rosrust::api::resolve::get_unused_args;
 use log::{debug, error, info};
+use rosrust::api::resolve::get_unused_args;
+use std::fmt::{Debug, Display};
+use std::process::ExitCode;
+use std::sync::atomic::Ordering;
+use std::sync::mpsc::channel;
+use std::sync::{mpsc, Arc};
+use std::thread;
 use tokio::sync::broadcast;
-use crate::color_threads::ros::ros_thread;
-use crate::color_threads::processing_frustum;
-use crate::color_threads::status::{status_thread, Status};
-use anyhow::Result;
-use crate::color_threads::processing_frustum::process_frustum_thread;
 
 mod cli;
-mod point_cloud_colorizer;
-mod init_colorize;
 mod color_threads;
+mod init_colorize;
+mod point_cloud_colorizer;
 
 fn main() -> ExitCode {
     // arg parsing
@@ -37,7 +37,7 @@ fn main() -> ExitCode {
         }
     }
 }
-fn run(args: AppOptions) -> Result<(), Error>{
+fn run(args: AppOptions) -> Result<(), Error> {
     //install the signal handler
     //preparing transmitters and receivers for stoping the program when Strg+c is pressed
     let (stop_status_tx, stop_status_rx) = mpsc::channel();
@@ -47,7 +47,7 @@ fn run(args: AppOptions) -> Result<(), Error>{
     let (stop_lidarserv_answer_tx, stop_lidarserv_answer_rx) = mpsc::channel();
     let (stop_processing_colorization_tx, stop_processing_colorization_rx) = mpsc::channel();
     let (stop_lidarserv_write_tx, stop_lidarserv_write_rx) = mpsc::channel();
-    
+
     let (exit_tx, exit_rx) = channel();
     {
         let exit_tx = exit_tx.clone();
@@ -65,10 +65,10 @@ fn run(args: AppOptions) -> Result<(), Error>{
                 stop_processing_colorization_tx.send(()).ok();
                 stop_lidarserv_write_tx.send(()).ok();
             }
-        }).expect("Failed to initialize Ctrl+C Handler");
+        })
+        .expect("Failed to initialize Ctrl+C Handler");
         info!("Press Ctrl+C to exit.");
     }
-
 
     //ROS read connection Thread
     //sender: images from ROS
@@ -83,9 +83,8 @@ fn run(args: AppOptions) -> Result<(), Error>{
         let args = args.clone();
         thread::spawn(move || {
             //todo!("ROS Thread")
-            ros_thread(args,commands_rx,image_data_tx, status1).log_error();
+            ros_thread(args, commands_rx, image_data_tx, status1).log_error();
             exit_tx.send(()).ok()
-            
         })
     };
 
@@ -115,8 +114,7 @@ fn run(args: AppOptions) -> Result<(), Error>{
             //todo!("lidarserv answer thread")
         })
     };
-    
-    
+
     //Processing colorization Thread
     //TODO: Processing Thread, that colorizes the points
     let join_colorization = {
@@ -125,8 +123,7 @@ fn run(args: AppOptions) -> Result<(), Error>{
             //init_colorize();
         })
     };
-    
-    
+
     //LidarServ store Thread
     //TODO: LidarServ Thread, that sends the processed points to the lidarserv server
     let join_lidarserv_store = {
@@ -134,7 +131,7 @@ fn run(args: AppOptions) -> Result<(), Error>{
             //todo!("lidarserv store thread")
         })
     };
-    
+
     //Status Thread
     let join_status = {
         let status = Arc::clone(&status);
@@ -142,7 +139,6 @@ fn run(args: AppOptions) -> Result<(), Error>{
             status_thread(status, stop_status_rx);
         })
     };
-    
 
     // wait for exit (user pressed ctrl+c, or one of the thread terminated unexpectedly)
     exit_rx.recv().unwrap();
@@ -167,10 +163,10 @@ fn run(args: AppOptions) -> Result<(), Error>{
 
     //stop LidarServ answer Thread
     join_lidarserv_answer.join().unwrap();
-    
+
     //stop Processing colorization Thread
     join_colorization.join().unwrap();
-    
+
     //stop LidarServ store Thread
     join_lidarserv_store.join().unwrap();
 

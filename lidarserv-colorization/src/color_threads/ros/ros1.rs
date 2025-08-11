@@ -1,29 +1,31 @@
-use std::sync::Arc;
+use crate::cli::AppOptions;
+use crate::color_threads::ros::ros1::messages::sensor_msgs::Image;
+use crate::color_threads::ros::{Command, ImageData};
+use crate::color_threads::status::Status;
+use anyhow::Result;
+use anyhow::{anyhow, Error};
+use log::{info, trace, warn};
 use std::sync::atomic::Ordering;
 use std::sync::mpsc::{Receiver, Sender};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
-use anyhow::{anyhow, Error};
-use crate::cli::AppOptions;
-use crate::color_threads::ros::{Command, ImageData};
-use anyhow::Result;
-use log::{info, trace, warn};
-use crate::color_threads::ros::ros1::messages::sensor_msgs::Image;
-use crate::color_threads::status::Status;
 
-pub(crate) fn ros_thread(app_options: AppOptions,
-                         commands_rx: Receiver<Command>,
-                         image_tx: Sender<ImageData>,
-                         status: Arc<Status>,) -> Result<()> {
+pub(crate) fn ros_thread(
+    app_options: AppOptions,
+    commands_rx: Receiver<Command>,
+    image_tx: Sender<ImageData>,
+    status: Arc<Status>,
+) -> Result<()> {
     // ROS init
     info!("Connecting to ROS master...");
     if rosrust::try_init_with_options("lidarserv_color", false).is_err() {
         return Err(anyhow!("Failed to connect to ROS master."));
     }
     info!("Connected 'lidarserv_color' to ROS master.");
-    
+
     //todo!("process multiple images");
-    
+
     let image_topic = app_options.image_topics[0].clone();
     let status1 = Arc::clone(&status);
 
@@ -39,10 +41,10 @@ pub(crate) fn ros_thread(app_options: AppOptions,
             return Err(anyhow!(
                 "Failed to subscribe to image topic `{}`.",
                 image_topic
-            ))
+            ));
         }
     };
-    
+
     info!("Subscribed to image topics.");
 
     // Control thread (for exiting)
@@ -60,14 +62,13 @@ pub(crate) fn ros_thread(app_options: AppOptions,
 }
 
 fn parse_image_message(msg: Image) -> ImageData {
-    ImageData{
+    ImageData {
         image: msg.data,
-        width : msg.width,
-        height : msg.height,
-        timestamp : Duration::new(msg.header.stamp.sec as u64, msg.header.stamp.nsec),
+        width: msg.width,
+        height: msg.height,
+        timestamp: Duration::new(msg.header.stamp.sec as u64, msg.header.stamp.nsec),
     }
 }
-
 
 mod messages {
     rosrust::rosmsg_include!(sensor_msgs / Image);
