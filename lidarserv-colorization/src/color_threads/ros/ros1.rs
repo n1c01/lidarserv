@@ -30,9 +30,7 @@ pub(crate) fn ros_thread(
     let status1 = Arc::clone(&status);
 
     let image_callback = move |msg: messages::sensor_msgs::Image| {
-        trace!("image message: {msg:?}");
         status1.nr_rx_msg_image.fetch_add(1, Ordering::Relaxed); //add 1 more image message to the counter
-        info!("image message: {msg:?}");
         image_tx.send(parse_image_message(msg)).ok();
     };
     let _image_subscriber = match rosrust::subscribe(&image_topic, 100, image_callback) {
