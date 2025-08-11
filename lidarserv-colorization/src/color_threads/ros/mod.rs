@@ -1,3 +1,4 @@
+use std::fmt;
 use crate::cli::AppOptions;
 use crate::color_threads::status::Status;
 use anyhow::Result;
@@ -21,9 +22,21 @@ pub enum Command {
     Exit,
 }
 
+impl fmt::Debug for ImageData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ImageData")
+            .field("image_vec_len", &self.image.len()) // Avoid printing full bytes
+            .field("width", &self.width)
+            .field("height", &self.height)
+            .field("timestamp", &self.timestamp)
+            .finish()
+    }
+}
+
 pub struct ImageData {
     pub image: Vec<u8>,
     pub width: u32,
     pub height: u32,
     pub timestamp: Duration,
 }
+
