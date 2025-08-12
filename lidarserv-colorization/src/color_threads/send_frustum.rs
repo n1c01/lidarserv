@@ -15,7 +15,7 @@ pub async fn send_frustum_thread(
     args: AppOptions,
     frustum_data_rx: mpsc::Receiver<ViewFrustumQuery>, //receiver to get the View Frustum Query for each image
     point_data_tx: mpsc::Sender<VectorBuffer>, //sender to send the points to the viewer.
-    point_data_complete_tx: mpsc::Sender<>,
+    //point_data_complete_tx: mpsc::Sender<>,
     status: Arc<Status>,
 )-> anyhow::Result<()> {
     debug!("Send Frustum Thread: Started");

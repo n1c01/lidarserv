@@ -45,9 +45,17 @@ pub struct ImageData {
     pub identifier: ImageIdentifier,
     pub frustum: ViewFrustumQuery,
 }
-
+impl fmt::Debug for ImageIdentifier {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ImageIdentifier")
+            .field("id", &self.id)
+            .field("timestamp", &self.timestamp)
+            .field("sequence", &self.sequence)
+            .finish()
+    }   
+}
 pub struct ImageIdentifier{
-    pub id: AtomicU64,
+    pub id: u64,
     pub timestamp: Duration,
     pub sequence: u32,
 }
