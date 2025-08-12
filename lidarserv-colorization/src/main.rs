@@ -75,7 +75,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     //sender: positions of the camera from ROS
     //TODO: ROS Thread, that reads out the images and the positions of the camera
     let (commands_tx, commands_rx) = mpsc::channel();
-    let (image_data_tx, image_data_rx) = mpsc::channel();
+    let (image_data_tx, image_data_rx) = mpsc::channel(); //Channel for the image data of the camera.
     let status = Arc::new(Status::default());
     let status1 = Arc::clone(&status);
     let join_ros = {
