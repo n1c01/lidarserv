@@ -18,9 +18,8 @@ pub fn process_frustum_thread(
     //loop waiting for image data to extract the frustum from it.
     loop {
         //todo! here waiting for more points could be impelmented.
-        let image_result = image_data_rx.recv(); //receiving image from ros input thread
+        let image_data = image_data_rx.recv()?; //receiving image from ros input thread
         status.nr_process_frustum_in.fetch_add(1, Ordering::Relaxed);
-        let image_data = image_result?;
         debug!("process_frustum_thread: The image {:?}",image_data);
         frustum_data_tx.send(image_data.frustum).ok(); //sending image to lidarserv frustum query thread
         status.nr_process_frustum_out.fetch_add(1, Ordering::Relaxed);
