@@ -29,6 +29,8 @@ impl fmt::Debug for ImageData {
             .field("width", &self.width)
             .field("height", &self.height)
             .field("timestamp", &self.timestamp)
+            .field("sequence",&self.sequence)
+            .field("encoding",&self.encoding)
             .finish()
     }
 }
@@ -38,5 +40,7 @@ pub struct ImageData {
     pub width: u32,
     pub height: u32,
     pub timestamp: Duration,
+    pub sequence: u32,
+    pub encoding: String,
 }
 

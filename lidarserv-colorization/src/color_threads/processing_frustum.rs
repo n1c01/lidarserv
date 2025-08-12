@@ -15,10 +15,8 @@ pub fn process_frustum_thread(
 
     loop {
         let image_result = image_data_rx.recv();
-        match image_result {
-            Err(e) => panic!("{}", e),
-            Ok(image) => info!("The image: {image:?}"),
-        }
+        let image = image_result?;
+        info!("The image{:?}",image);
     }
 
     //todo!("turn Image Data into ViewFrustumQuery")
@@ -26,6 +24,18 @@ pub fn process_frustum_thread(
     debug!("process_frustum_thread is finished");
     Err(anyhow!("process_frusutum_thread not jet implemented"))
 }
+
+
+fn process_picture(
+    image_data: ImageData,
+    frustum_data_tx: mpsc::Sender<ViewFrustumQuery>,
+) -> anyhow::Result<()> {
+
+    debug!("test");
+    Err(anyhow!("processing picture not jet implemented"))
+}
+
+
 /*
 Query::ViewFrustum(ViewFrustumQuery {
                     camera_pos,
