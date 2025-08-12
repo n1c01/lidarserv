@@ -17,7 +17,7 @@ pub fn process_frustum_thread(
 
     //loop waiting for image data to extract the frustum from it.
     loop {
-        //todo! here waiting for more points could be impelmented.
+        //todo! here waiting for more points could be impelmented. (e.g. wayting a fixed amout of time.)
         let image_data = image_data_rx.recv()?; //receiving image from ros input thread
         status.nr_process_frustum_in.fetch_add(1, Ordering::Relaxed);
         debug!("process_frustum_thread: The image {:?}", image_data);
