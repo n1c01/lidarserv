@@ -1,11 +1,11 @@
 use crate::cli::AppOptions;
 use crate::color_threads::ros::ros1::messages::sensor_msgs::Image;
-use crate::color_threads::ros::{Command, ImageData};
+use crate::color_threads::ros::{Command, ImageData, ImageIdentifier};
 use crate::color_threads::status::Status;
 use anyhow::Result;
 use anyhow::{anyhow, Error};
 use log::{debug, info, trace, warn};
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::thread;
@@ -25,15 +25,16 @@ pub(crate) fn ros_thread(
     }
     info!("Connected 'lidarserv_color' to ROS master.");
 
-    //todo!("process multiple images");
+    let image_id:AtomicU64 = Default::default();
 
+    //todo!("process multiple image topics");
     let image_topic = app_options.image_topics[0].clone();
     let status1 = Arc::clone(&status);
 
     let image_callback = move |msg: messages::sensor_msgs::Image| {
-        status1.nr_rx_msg_image.fetch_add(1, Ordering::Relaxed); //add 1 more image message to the counter
+        status1.nr_received_images.fetch_add(1, Ordering::Relaxed); //add 1 more image message to the counter
         debug!("image message header: {:?}", msg.header);
-        image_tx.send(parse_image_message(msg)).ok();
+        image_tx.send(parse_image_message(msg,image_id)).ok();
     };
     let _image_subscriber = match rosrust::subscribe(&image_topic, 100, image_callback) {
         Ok(s) => s,
@@ -61,15 +62,18 @@ pub(crate) fn ros_thread(
     Ok(())
 }
 
-pub(crate) fn parse_image_message(msg: Image) -> ImageData {
+pub(crate) fn parse_image_message(msg: Image, image_id: AtomicU64) -> ImageData {
     //todo: add positional data! 
     ImageData {
         image: msg.data,
         width: msg.width,
         height: msg.height,
-        timestamp: Duration::new(msg.header.stamp.sec as u64, msg.header.stamp.nsec),
-        sequence: msg.header.seq,
         encoding: msg.encoding,
+        identifier: ImageIdentifier{
+            id: image_id,
+            timestamp: Duration::new(msg.header.stamp.sec as u64, msg.header.stamp.nsec),
+            sequence: msg.header.seq,
+        },
         frustum: ViewFrustumQuery {
             camera_pos: Default::default(),
             camera_dir: Default::default(),

@@ -3,6 +3,7 @@ use crate::cli::AppOptions;
 use crate::color_threads::status::Status;
 use anyhow::Result;
 use std::sync::{mpsc, Arc};
+use std::sync::atomic::AtomicU64;
 use std::time::Duration;
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 
@@ -29,8 +30,7 @@ impl fmt::Debug for ImageData {
             .field("image_vec_len", &self.image.len()) // Avoid printing full bytes
             .field("width", &self.width)
             .field("height", &self.height)
-            .field("timestamp", &self.timestamp)
-            .field("sequence",&self.sequence)
+            .field("idenfifier", &self.identifier)
             .field("encoding",&self.encoding)
             .field("frustum",&self.frustum)
             .finish()
@@ -41,9 +41,14 @@ pub struct ImageData {
     pub image: Vec<u8>,
     pub width: u32,
     pub height: u32,
+    pub encoding: String,
+    pub identifier: ImageIdentifier,
+    pub frustum: ViewFrustumQuery,
+}
+
+pub struct ImageIdentifier{
+    pub id: AtomicU64,
     pub timestamp: Duration,
     pub sequence: u32,
-    pub encoding: String,
-    pub frustum: ViewFrustumQuery,
 }
 
