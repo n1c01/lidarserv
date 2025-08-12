@@ -4,13 +4,13 @@ use crate::color_threads::ros::{Command, ImageData, ImageIdentifier};
 use crate::color_threads::status::Status;
 use anyhow::Result;
 use anyhow::{anyhow, Error};
+use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use log::{debug, info, trace, warn};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
-use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 
 pub(crate) fn ros_thread(
     app_options: AppOptions,
@@ -25,17 +25,21 @@ pub(crate) fn ros_thread(
     }
     info!("Connected 'lidarserv_color' to ROS master.");
 
-
     //todo!("process multiple image topics");
     let image_topic = app_options.image_topics[0].clone();
     let status1 = Arc::clone(&status);
-    let image_id:AtomicU64 = Default::default();
+    let image_id: AtomicU64 = Default::default();
 
     let image_callback = move |msg: messages::sensor_msgs::Image| {
         status1.nr_received_images.fetch_add(1, Ordering::Relaxed); //add 1 more image message to the counter
         let current_image_id = image_id.fetch_add(1, Ordering::Relaxed);
-        debug!("image message header: {:?} of image_id: {:?}", msg.header, current_image_id);
-        image_tx.send(parse_image_message(msg,current_image_id)).ok();
+        debug!(
+            "image message header: {:?} of image_id: {:?}",
+            msg.header, current_image_id
+        );
+        image_tx
+            .send(parse_image_message(msg, current_image_id))
+            .ok();
     };
     let _image_subscriber = match rosrust::subscribe(&image_topic, 100, image_callback) {
         Ok(s) => s,
@@ -64,13 +68,13 @@ pub(crate) fn ros_thread(
 }
 
 pub(crate) fn parse_image_message(msg: Image, image_id: u64) -> ImageData {
-    //todo: add positional data! 
+    //todo: add positional data!
     ImageData {
         image: msg.data,
         width: msg.width,
         height: msg.height,
         encoding: msg.encoding,
-        identifier: ImageIdentifier{
+        identifier: ImageIdentifier {
             id: image_id,
             timestamp: Duration::new(msg.header.stamp.sec as u64, msg.header.stamp.nsec),
             sequence: msg.header.seq,

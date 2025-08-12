@@ -19,7 +19,7 @@ pub struct Status {
     pub nr_received_images: AtomicU64, //Number of received image messages.
     pub nr_process_frustum_in: AtomicU64, // Number of received frustum queries.
     pub nr_process_frustum_out: AtomicU64, //Number of processed frustum queries.
-    pub nr_sent_queries: AtomicU64, //Number of sent queries.
+    pub nr_sent_queries: AtomicU64,    //Number of sent queries.
     pub frustum_query_received_points: AtomicU64, //Number of received points
     pub frustum_query_received_nodes: AtomicU64, //Number of received nodes
 }
@@ -73,7 +73,10 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
             stop_reason.to_string()
         } else {
             all_stopped = false;
-            format!("queue: {:2} msg | {:3} msg/s", buffer1, nr_process_frustum_out,)
+            format!(
+                "queue: {:2} msg | {:3} msg/s",
+                buffer1, nr_process_frustum_out,
+            )
         };
         let tx_part = if all_stopped && buffer2 == 0 && nr_tx_msg_query == 0 {
             stop_reason.to_string()

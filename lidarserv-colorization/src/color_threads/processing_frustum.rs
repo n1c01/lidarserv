@@ -4,8 +4,8 @@ use crate::color_threads::status::Status;
 use anyhow::{anyhow, Error};
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use log::{debug, error, info};
-use std::sync::{mpsc, Arc};
 use std::sync::atomic::Ordering;
+use std::sync::{mpsc, Arc};
 
 pub fn process_frustum_thread(
     args: AppOptions,
@@ -20,9 +20,11 @@ pub fn process_frustum_thread(
         //todo! here waiting for more points could be impelmented.
         let image_data = image_data_rx.recv()?; //receiving image from ros input thread
         status.nr_process_frustum_in.fetch_add(1, Ordering::Relaxed);
-        debug!("process_frustum_thread: The image {:?}",image_data);
+        debug!("process_frustum_thread: The image {:?}", image_data);
         frustum_data_tx.send(image_data.frustum).ok(); //sending image to lidarserv frustum query thread
-        status.nr_process_frustum_out.fetch_add(1, Ordering::Relaxed);
+        status
+            .nr_process_frustum_out
+            .fetch_add(1, Ordering::Relaxed);
 
         //todo! make stopable
     }

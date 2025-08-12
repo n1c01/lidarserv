@@ -1,23 +1,23 @@
-use std::sync::{mpsc, Arc};
-use std::sync::atomic::Ordering;
-use log::{debug, warn};
-use tokio::sync::broadcast;
-use lidarserv_common::query::view_frustum::ViewFrustumQuery;
-use pasture_core::containers::{BorrowedBuffer, VectorBuffer};
 use crate::cli::AppOptions;
 use crate::color_threads::status::Status;
+use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use lidarserv_server::{
     index::query::Query,
-    net::client::viewer::{PartialResult, QueryConfig, ViewerClient,NodeUpdate},
+    net::client::viewer::{NodeUpdate, PartialResult, QueryConfig, ViewerClient},
 };
+use log::{debug, warn};
+use pasture_core::containers::{BorrowedBuffer, VectorBuffer};
+use std::sync::atomic::Ordering;
+use std::sync::{mpsc, Arc};
+use tokio::sync::broadcast;
 
 pub async fn send_frustum_thread(
     args: AppOptions,
     frustum_data_rx: mpsc::Receiver<ViewFrustumQuery>, //receiver to get the View Frustum Query for each image
-    point_data_tx: mpsc::Sender<VectorBuffer>, //sender to send the points to the viewer.
+    point_data_tx: mpsc::Sender<VectorBuffer>,         //sender to send the points to the viewer.
     //point_data_complete_tx: mpsc::Sender<>,
     status: Arc<Status>,
-)-> anyhow::Result<()> {
+) -> anyhow::Result<()> {
     debug!("Send Frustum Thread: Started");
     // connect to viewerClient
     let (_shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
@@ -35,15 +35,15 @@ pub async fn send_frustum_thread(
                 frustum_query,
                 &QueryConfig {
                     point_filtering: false,
-            },
-            ).await?;
+                },
+            )
+            .await?;
         //loop to receive all the parts of the view frustum query.
-        loop{
-            let update:PartialResult<VectorBuffer> = client
+        loop {
+            let update: PartialResult<VectorBuffer> = client
                 .read
                 .receive_update_global_coordinates(&mut shutdown_rx)
                 .await?;
-
 
             match update {
                 PartialResult::DeleteNode(_) => warn!("Received unexpected DeleteNode message."),
@@ -51,19 +51,18 @@ pub async fn send_frustum_thread(
                     status
                         .frustum_query_received_points
                         .fetch_add(update.points.len() as u64, Ordering::Relaxed);
-                    status.frustum_query_received_nodes.fetch_add(1, Ordering::Relaxed);
+                    status
+                        .frustum_query_received_nodes
+                        .fetch_add(1, Ordering::Relaxed);
                     point_data_tx.send(update.points)?
                 }
                 PartialResult::Complete => {
-
                     debug!("Received Complete message.");
                     break;
-                },
+                }
             }
             //todo: send mark done.
         }
-
-
 
         //todo: send data.
     }

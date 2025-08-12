@@ -1,11 +1,10 @@
-use std::fmt;
 use crate::cli::AppOptions;
 use crate::color_threads::status::Status;
 use anyhow::Result;
-use std::sync::{mpsc, Arc};
-use std::sync::atomic::AtomicU64;
-use std::time::Duration;
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
+use std::fmt;
+use std::sync::{mpsc, Arc};
+use std::time::Duration;
 
 mod ros1;
 
@@ -31,8 +30,8 @@ impl fmt::Debug for ImageData {
             .field("width", &self.width)
             .field("height", &self.height)
             .field("idenfifier", &self.identifier)
-            .field("encoding",&self.encoding)
-            .field("frustum",&self.frustum)
+            .field("encoding", &self.encoding)
+            .field("frustum", &self.frustum)
             .finish()
     }
 }
@@ -52,11 +51,10 @@ impl fmt::Debug for ImageIdentifier {
             .field("timestamp", &self.timestamp)
             .field("sequence", &self.sequence)
             .finish()
-    }   
+    }
 }
-pub struct ImageIdentifier{
+pub struct ImageIdentifier {
     pub id: u64,
     pub timestamp: Duration,
     pub sequence: u32,
 }
-
