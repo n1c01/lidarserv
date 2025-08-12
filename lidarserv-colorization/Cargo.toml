@@ -7,6 +7,7 @@ edition = "2024"
 las = "0.9"
 image = "0.25.6"
 lidarserv-common.path = "../lidarserv-common"
+lidarserv-server.path = "../lidarserv-server"
 log = "0.4.27"
 rosrust = "0.9.12"
 simple_logger = "5.0"
@@ -16,3 +17,4 @@ tokio = { version = "1.46.1", features = ["full"] }
 ctrlc = "3.4.7"
 console = "0.16.0"
 error = "0.1.9"
+pasture-core.workspace = true
