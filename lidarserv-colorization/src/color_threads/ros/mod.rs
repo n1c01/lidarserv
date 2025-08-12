@@ -4,6 +4,7 @@ use crate::color_threads::status::Status;
 use anyhow::Result;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
+use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 
 mod ros1;
 
@@ -31,6 +32,7 @@ impl fmt::Debug for ImageData {
             .field("timestamp", &self.timestamp)
             .field("sequence",&self.sequence)
             .field("encoding",&self.encoding)
+            .field("frustum",&self.frustum)
             .finish()
     }
 }
@@ -42,5 +44,6 @@ pub struct ImageData {
     pub timestamp: Duration,
     pub sequence: u32,
     pub encoding: String,
+    pub frustum: ViewFrustumQuery,
 }
 

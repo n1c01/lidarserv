@@ -73,7 +73,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     //ROS read connection Thread
     //sender: images from ROS
     //sender: positions of the camera from ROS
-    //TODO: ROS Thread, that reads out the images and the positions of the camera
+    // ROS Thread, that reads out the images and the positions of the camera
     let (commands_tx, commands_rx) = mpsc::channel();
     let (image_data_tx, image_data_rx) = mpsc::channel(); //Channel for the image data of the camera.
     let status = Arc::new(Status::default());
@@ -82,20 +82,18 @@ fn run(args: AppOptions) -> Result<(), Error> {
         let exit_tx = exit_tx.clone();
         let args = args.clone();
         thread::spawn(move || {
-            //todo!("ROS Thread")
             ros_thread(args, commands_rx, image_data_tx, status1).log_error();
             exit_tx.send(()).ok()
         })
     };
 
     //Processing frustum Thread
-    //TODO: Processing Thread, that processes the camera position and calculates the frustum
+    //Processing Thread, that processes the camera position and calculates the frustum
     let (frustum_data_tx, frustum_data_rx) = mpsc::channel();
     let status2 = Arc::clone(&status);
     let join_processing_frustum = {
         thread::spawn(move || {
             process_frustum_thread(args, image_data_rx, frustum_data_tx, status2).log_error();
-            //todo!("Processing frustum Thread")
         })
     };
 
@@ -103,6 +101,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     //TODO: LidarServ Thread, that queries the frustum to retrieve the points from the lidarserv server
     let join_lidarserv_query = {
         thread::spawn(move || {
+
             //todo!("lidarserv query thread")
         })
     };

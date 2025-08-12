@@ -10,6 +10,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 
 pub(crate) fn ros_thread(
     app_options: AppOptions,
@@ -60,7 +61,8 @@ pub(crate) fn ros_thread(
     Ok(())
 }
 
-fn parse_image_message(msg: Image) -> ImageData {
+pub(crate) fn parse_image_message(msg: Image) -> ImageData {
+    //todo: add positional data! 
     ImageData {
         image: msg.data,
         width: msg.width,
@@ -68,6 +70,16 @@ fn parse_image_message(msg: Image) -> ImageData {
         timestamp: Duration::new(msg.header.stamp.sec as u64, msg.header.stamp.nsec),
         sequence: msg.header.seq,
         encoding: msg.encoding,
+        frustum: ViewFrustumQuery {
+            camera_pos: Default::default(),
+            camera_dir: Default::default(),
+            camera_up: Default::default(),
+            fov_y: 0.0,
+            z_near: 0.0,
+            z_far: 0.0,
+            window_size: Default::default(),
+            max_distance: 0.0,
+        },
     }
 }
 

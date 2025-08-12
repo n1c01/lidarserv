@@ -5,46 +5,27 @@ use anyhow::{anyhow, Error};
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use log::{debug, error, info};
 use std::sync::{mpsc, Arc};
+use std::sync::atomic::Ordering;
+
 pub fn process_frustum_thread(
     args: AppOptions,
     image_data_rx: mpsc::Receiver<ImageData>,
     frustum_data_tx: mpsc::Sender<ViewFrustumQuery>,
     status: Arc<Status>,
 ) -> anyhow::Result<()> {
-    debug!("process_frustum_thread is started");
+    debug!("process_frustum_thread: is started");
 
+    //loop waiting for image data to extract the frustum from it.
     loop {
-        let image_result = image_data_rx.recv();
-        let image = image_result?;
-        info!("The image{:?}",image);
+        //todo! here waiting for more points could be impelmented.
+        let image_result = image_data_rx.recv(); //receiving image from ros input thread
+        status.nr_process_frustum_in.fetch_add(1, Ordering::Relaxed);
+        let image_data = image_result?;
+        debug!("process_frustum_thread: The image {:?}",image_data);
+        frustum_data_tx.send(image_data.frustum).ok(); //sending image to lidarserv frustum query thread
+        status.nr_process_frustum_out.fetch_add(1, Ordering::Relaxed);
+
+        //todo! make stopable
     }
-
-    //todo!("turn Image Data into ViewFrustumQuery")
-
-    debug!("process_frustum_thread is finished");
-    Err(anyhow!("process_frusutum_thread not jet implemented"))
+    debug!("process_frustum_thread: is finished");
 }
-
-
-fn process_picture(
-    image_data: ImageData,
-    frustum_data_tx: mpsc::Sender<ViewFrustumQuery>,
-) -> anyhow::Result<()> {
-
-    debug!("test");
-    Err(anyhow!("processing picture not jet implemented"))
-}
-
-
-/*
-Query::ViewFrustum(ViewFrustumQuery {
-                    camera_pos,
-                    camera_dir,
-                    camera_up: vector![0.0, 0.0, 1.0],
-                    fov_y: FRAC_PI_4,
-                    z_near,
-                    z_far,
-                    window_size: camera_matrix.window_size,
-                    max_distance: args.point_distance, //vermutlich sehr niedrig wählen
-                }
- */
