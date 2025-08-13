@@ -1,7 +1,7 @@
 use crate::cli::AppOptions;
 use crate::color_threads::ros::ros1::messages::sensor_msgs::Image;
 use crate::color_threads::ros::{Command};
-use crate::color_threads::{ImageData, ImageIdentifier};
+use crate::color_threads::{ImageData, ImageIdAndFrustum};
 use crate::color_threads::status::Status;
 use anyhow::Result;
 use anyhow::{anyhow};
@@ -75,20 +75,20 @@ pub(crate) fn parse_image_message(msg: Image, image_id: u64) -> ImageData {
         width: msg.width,
         height: msg.height,
         encoding: msg.encoding,
-        identifier: ImageIdentifier {
-            id: image_id,
-            timestamp: Duration::new(msg.header.stamp.sec as u64, msg.header.stamp.nsec),
-            sequence: msg.header.seq,
-        },
-        frustum: ViewFrustumQuery {
-            camera_pos: Default::default(),
-            camera_dir: Default::default(),
-            camera_up: Default::default(),
-            fov_y: 0.0,
-            z_near: 0.0,
-            z_far: 0.0,
-            window_size: Default::default(),
-            max_distance: 0.0,
+        timestamp: Duration::new(msg.header.stamp.sec as u64, msg.header.stamp.nsec),
+        sequence: msg.header.seq,
+        image_id_and_frustum: ImageIdAndFrustum {
+            image_id: image_id,
+            frustum: ViewFrustumQuery {
+                camera_pos: Default::default(),
+                camera_dir: Default::default(),
+                camera_up: Default::default(),
+                fov_y: 0.0,
+                z_near: 0.0,
+                z_far: 0.0,
+                window_size: Default::default(),
+                max_distance: 0.0,
+            },
         },
     }
 }

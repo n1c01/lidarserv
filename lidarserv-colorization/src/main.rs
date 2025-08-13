@@ -1,5 +1,6 @@
 use crate::color_threads::processing_frustum;
 use crate::color_threads::processing_frustum::process_frustum_thread;
+use crate::color_threads::send_frustum::send_frustum_thread;
 use crate::color_threads::ros::ros_thread;
 use crate::color_threads::status::{status_thread, Status};
 use anyhow::Result;
@@ -80,29 +81,34 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let status1 = Arc::clone(&status);
     let join_ros = {
         let exit_tx = exit_tx.clone();
-        let args = args.clone();
+        let args1 = args.clone();
         thread::spawn(move || {
-            ros_thread(args, commands_rx, image_data_tx, status1).log_error();
+            ros_thread(args1, commands_rx, image_data_tx, status1).log_error();
             exit_tx.send(()).ok()
         })
     };
 
     //Processing frustum Thread
     //Processing Thread, that processes the camera position and calculates the frustum
-    let (frustum_data_tx, frustum_data_rx) = mpsc::channel();
+    let (image_id_and_frustum_data_tx, image_id_and_frustum_data_rx) = mpsc::channel();
     let status2 = Arc::clone(&status);
+    let args2 = args.clone();
+
     let join_processing_frustum = {
         thread::spawn(move || {
-            process_frustum_thread(args, image_data_rx, frustum_data_tx, status2).log_error();
+            process_frustum_thread(args2, image_data_rx, image_id_and_frustum_data_tx, status2).log_error();
         })
     };
 
     //LidarServ query Thread
     //TODO: LidarServ Thread, that queries the frustum to retrieve the points from the lidarserv server
+    //let (points_tx, points_rx) = mpsc::channel(); //todo!(rename more precise)
+    let status3 = Arc::clone(&status);
+    let args3 = args.clone();
     let join_lidarserv_query = {
         thread::spawn(move || {
-
-            //todo!("lidarserv query thread")
+            //Todo:check if asynchronous is right.
+            //send_frustum_thread(args3, image_id_and_frustum_data_rx,points_tx,status3).log_error();
         })
     };
 

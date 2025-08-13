@@ -1,6 +1,6 @@
 use crate::cli::AppOptions;
 use crate::color_threads::ros::{Command};
-use crate::color_threads::{ImageIdentifier,ImageData};
+use crate::color_threads::{ImageIdAndFrustum,ImageData};
 use crate::color_threads::status::Status;
 use anyhow::{anyhow, Error};
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
@@ -11,7 +11,7 @@ use std::sync::{mpsc, Arc};
 pub fn process_frustum_thread(
     args: AppOptions,
     image_data_rx: mpsc::Receiver<ImageData>,
-    frustum_data_tx: mpsc::Sender<ViewFrustumQuery>,
+    frustum_data_tx: mpsc::Sender<ImageIdAndFrustum>,
     status: Arc<Status>,
 ) -> anyhow::Result<()> {
     debug!("process_frustum_thread: is started");
@@ -22,7 +22,7 @@ pub fn process_frustum_thread(
         let image_data = image_data_rx.recv()?; //receiving image from ros input thread
         status.nr_process_frustum_in.fetch_add(1, Ordering::Relaxed);
         debug!("process_frustum_thread: The image {:?}", image_data);
-        frustum_data_tx.send(image_data.frustum).ok(); //sending image to lidarserv frustum query thread
+        frustum_data_tx.send(image_data.image_id_and_frustum).ok(); //sending image to lidarserv frustum query thread
         status
             .nr_process_frustum_out
             .fetch_add(1, Ordering::Relaxed);
