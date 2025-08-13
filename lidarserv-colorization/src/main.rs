@@ -15,6 +15,7 @@ use std::sync::atomic::Ordering;
 use std::sync::mpsc::channel;
 use std::sync::{mpsc, Arc};
 use std::thread;
+use tokio::runtime::Runtime;
 use tokio::sync::broadcast;
 
 mod cli;
@@ -102,13 +103,13 @@ fn run(args: AppOptions) -> Result<(), Error> {
 
     //LidarServ query Thread
     //TODO: LidarServ Thread, that queries the frustum to retrieve the points from the lidarserv server
-    //let (points_tx, points_rx) = mpsc::channel(); //todo!(rename more precise)
+    let (points_tx, points_rx) = mpsc::channel(); //todo!(rename more precise)
     let status3 = Arc::clone(&status);
     let args3 = args.clone();
     let join_lidarserv_query = {
         thread::spawn(move || {
-            //Todo:check if asynchronous is right.
-            //send_frustum_thread(args3, image_id_and_frustum_data_rx,points_tx,status3).log_error();
+            let rt = Runtime::new().unwrap();
+            rt.block_on(send_frustum_thread(args3, image_id_and_frustum_data_rx,points_tx,status3)).log_error();
         })
     };
 
