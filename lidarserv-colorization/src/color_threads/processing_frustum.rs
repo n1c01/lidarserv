@@ -1,5 +1,6 @@
 use crate::cli::AppOptions;
-use crate::color_threads::ros::{Command, ImageData};
+use crate::color_threads::ros::{Command};
+use crate::color_threads::{ImageIdentifier,ImageData};
 use crate::color_threads::status::Status;
 use anyhow::{anyhow, Error};
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;

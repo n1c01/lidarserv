@@ -1,9 +1,10 @@
 use crate::cli::AppOptions;
 use crate::color_threads::ros::ros1::messages::sensor_msgs::Image;
-use crate::color_threads::ros::{Command, ImageData, ImageIdentifier};
+use crate::color_threads::ros::{Command};
+use crate::color_threads::{ImageData, ImageIdentifier};
 use crate::color_threads::status::Status;
 use anyhow::Result;
-use anyhow::{anyhow, Error};
+use anyhow::{anyhow};
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use log::{debug, info, trace, warn};
 use std::sync::atomic::{AtomicU64, Ordering};
