@@ -1,7 +1,7 @@
 use crate::cli::AppOptions;
 use crate::color_threads::status::Status;
 use anyhow::Result;
-use crate::color_threads::ImageData;
+use crate::color_threads::{Command, ImageData};
 
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use std::fmt;
@@ -21,6 +21,4 @@ pub fn ros_thread(
     ros1::ros_thread(args, commands_rx, image_data_tx, status)
 }
 
-pub enum Command {
-    Exit,
-}
+
