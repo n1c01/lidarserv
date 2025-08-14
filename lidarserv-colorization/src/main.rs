@@ -1,5 +1,6 @@
-use crate::color_threads::{processing_frustum};
+use crate::color_threads::{processing_frustum, ImageIdAndVectorBuffer};
 use crate::color_threads::processing_frustum::process_frustum_thread;
+use crate::color_threads::collect_colorization_data::collect_colorization_data_thread;
 use crate::color_threads::send_frustum::send_frustum_thread;
 use crate::color_threads::ros::ros_thread;
 use crate::color_threads::status::{status_thread, Status};
@@ -12,7 +13,7 @@ use rosrust::api::resolve::get_unused_args;
 use std::fmt::{Debug, Display};
 use std::process::ExitCode;
 use std::sync::atomic::Ordering;
-use std::sync::mpsc::channel;
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{mpsc, Arc};
 use std::thread;
 use tokio::runtime::Runtime;
@@ -109,10 +110,15 @@ fn run(args: AppOptions) -> Result<(), Error> {
 
     //LidarServ answer Thread
     //TODO: LidarServ Thread, that recieves the points from the lidarserv server and sends them to the colorization thread
+    let (colorization_data_tx, colorization_data_rx) = mpsc::channel();
+    let exit_tx4 = exit_tx.clone();
+    let status4 = Arc::clone(&status);
+    let args4 = args.clone();
     let join_lidarserv_answer = {
         thread::spawn(move || {
+            collect_colorization_data_thread(args4, points_rx,colorization_data_tx, status4).log_error();
             //todo!("lidarserv answer thread")
-            //exit_tx.send(()).ok()
+            exit_tx4.send(()).ok()
         })
     };
 

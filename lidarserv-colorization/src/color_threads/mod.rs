@@ -9,8 +9,7 @@ pub(crate) mod processing_frustum;
 pub(crate) mod ros;
 pub(crate) mod send_frustum;
 pub(crate) mod status;
-
-
+pub(crate) mod collect_colorization_data;
 
 impl fmt::Debug for ImageData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -53,3 +52,7 @@ pub struct ImageIdAndVectorBuffer {
     pub vector_buffer: VectorBuffer,
 }
 
+pub struct ColorizationData {
+    pub image_data: ImageData,
+    pub point_data: VectorBuffer, //todo! validate type
+}
