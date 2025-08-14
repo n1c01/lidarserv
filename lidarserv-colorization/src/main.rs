@@ -1,9 +1,9 @@
-use crate::color_threads::{processing_frustum, ImageIdAndVectorBuffer};
-use crate::color_threads::processing_frustum::process_frustum_thread;
 use crate::color_threads::collect_colorization_data::collect_colorization_data_thread;
-use crate::color_threads::send_frustum::send_frustum_thread;
+use crate::color_threads::processing_frustum::process_frustum_thread;
 use crate::color_threads::ros::ros_thread;
+use crate::color_threads::send_frustum::send_frustum_thread;
 use crate::color_threads::status::{status_thread, Status};
+use crate::color_threads::{processing_frustum, ImageIdAndVectorBuffer};
 use anyhow::Result;
 use anyhow::{Context, Error};
 use clap::Parser;
@@ -43,7 +43,8 @@ fn main() -> ExitCode {
 fn run(args: AppOptions) -> Result<(), Error> {
     //install the signal handler
     //preparing transmitters and receivers for stoping the program when Strg+c is pressed
-    let (stop_lidarserv_colorization_tx, stop_lidarserv_colorization_rx) = tokio::sync::broadcast::channel(1); //only one message sent therefore capacity one
+    let (stop_lidarserv_colorization_tx, stop_lidarserv_colorization_rx) =
+        tokio::sync::broadcast::channel(1); //only one message sent therefore capacity one
     let (stop_status_tx, stop_status_rx) = channel();
 
     let (exit_tx, exit_rx) = channel();
@@ -89,7 +90,14 @@ fn run(args: AppOptions) -> Result<(), Error> {
 
     let join_processing_frustum = {
         thread::spawn(move || {
-            process_frustum_thread(args2, stop_lidarserv_colorization_rx, image_data_rx, image_id_and_frustum_data_tx, status2).log_error();
+            process_frustum_thread(
+                args2,
+                stop_lidarserv_colorization_rx,
+                image_data_rx,
+                image_id_and_frustum_data_tx,
+                status2,
+            )
+            .log_error();
             exit_tx2.send(()).ok()
         })
     };
@@ -103,7 +111,13 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let join_lidarserv_query = {
         thread::spawn(move || {
             let rt = Runtime::new().unwrap();
-            rt.block_on(send_frustum_thread(args3, image_id_and_frustum_data_rx,points_tx,status3)).log_error();
+            rt.block_on(send_frustum_thread(
+                args3,
+                image_id_and_frustum_data_rx,
+                points_tx,
+                status3,
+            ))
+            .log_error();
             exit_tx3.send(()).ok()
         })
     };
@@ -116,7 +130,8 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let args4 = args.clone();
     let join_lidarserv_answer = {
         thread::spawn(move || {
-            collect_colorization_data_thread(args4, points_rx,colorization_data_tx, status4).log_error();
+            collect_colorization_data_thread(args4, points_rx, colorization_data_tx, status4)
+                .log_error();
             exit_tx4.send(()).ok()
         })
     };
@@ -137,7 +152,6 @@ fn run(args: AppOptions) -> Result<(), Error> {
         thread::spawn(move || {
             //todo!("lidarserv store thread")
             //exit_tx.send(()).ok()
-
         })
     };
 

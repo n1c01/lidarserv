@@ -1,15 +1,13 @@
+use lidarserv_common::query::view_frustum::ViewFrustumQuery;
+use pasture_core::containers::{BorrowedBuffer, VectorBuffer};
 use std::fmt;
 use std::time::Duration;
-use lidarserv_common::query::view_frustum::ViewFrustumQuery;
-use lidarserv_server::net::client::viewer::NodeUpdate;
-use pasture_core::containers::{BorrowedBuffer, VectorBuffer};
 
-
+pub(crate) mod collect_colorization_data;
 pub(crate) mod processing_frustum;
 pub(crate) mod ros;
 pub(crate) mod send_frustum;
 pub(crate) mod status;
-pub(crate) mod collect_colorization_data;
 
 impl fmt::Debug for ImageData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

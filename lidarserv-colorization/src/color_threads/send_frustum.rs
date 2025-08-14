@@ -1,5 +1,6 @@
 use crate::cli::AppOptions;
 use crate::color_threads::status::Status;
+use crate::color_threads::{ImageIdAndFrustum, ImageIdAndVectorBuffer};
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use lidarserv_server::{
     index::query::Query,
@@ -10,7 +11,6 @@ use pasture_core::containers::{BorrowedBuffer, VectorBuffer};
 use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc};
 use tokio::sync::broadcast;
-use crate::color_threads::{ImageIdAndFrustum, ImageIdAndVectorBuffer};
 
 pub async fn send_frustum_thread(
     args: AppOptions,
@@ -54,12 +54,10 @@ pub async fn send_frustum_thread(
             .await?;
         //loop to receive all the parts of the view frustum query.
         loop {
-            //debug!("image_id {:?}: receive points updates are beeing matched",current_image_id);
             let update = client
                 .read
                 .receive_update_global_coordinates(&mut shutdown_rx)
                 .await?;
-            //debug!("image_id {:?}: update is read and now matched: {:?}",current_image_id,update);
             match update {
                 PartialResult::DeleteNode(_) => warn!("Received unexpected DeleteNode message."),
                 PartialResult::UpdateNode(update) => {
@@ -71,14 +69,14 @@ pub async fn send_frustum_thread(
                         .fetch_add(1, Ordering::Relaxed);
                     debug!("image_id {:?} Number of points read: {:?}",current_image_id, update.points.len());
 
-                    point_data_tx.send(ImageIdAndVectorBuffer{
+                    point_data_tx.send(ImageIdAndVectorBuffer {
                         image_id: current_image_id,
                         vector_buffer: update.points,
                     })?
                 }
                 PartialResult::Complete => {
                     debug!("image_id {:?}: Received Complete message.",current_image_id);
-                    //break; //todo! dont break directly, updates may be received out of order.
+                    //break; //todo! maybe dont break directly, updates may be received out of order.
                 }
             }
             //todo: send mark done.

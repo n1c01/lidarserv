@@ -1,7 +1,7 @@
 use crate::cli::AppOptions;
-use crate::color_threads::ros::{Command};
-use crate::color_threads::{ImageIdAndFrustum,ImageData};
+use crate::color_threads::ros::Command;
 use crate::color_threads::status::Status;
+use crate::color_threads::{ImageData, ImageIdAndFrustum};
 use anyhow::{anyhow, Error};
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use log::{debug, error, info, warn};
@@ -38,23 +38,23 @@ pub fn process_frustum_thread(
             .fetch_add(1, Ordering::Relaxed);
 
         //handle stop signal
-         match stop_lidarserv_colorization_rx.try_recv() {
-             Ok(_) => {
-                 debug!("process_frustum_thread: stop signal received");
-                 break;
-             }
-             Err(TryRecvError::Closed) => {
-                 warn!("process_frustum_thread: stop signal channel closed");
-                 break;
-             }
-             Err(TryRecvError::Empty) => {
-                 debug!("process_frustum_thread: stop signal channel empty");
-             }
-             Err(TryRecvError::Lagged(_))  => {
-                 warn!("process_frustum_thread: stop signal channel lagged");
-                 break;
-             }
-         }
+        match stop_lidarserv_colorization_rx.try_recv() {
+            Ok(_) => {
+                debug!("process_frustum_thread: stop signal received");
+                break;
+            }
+            Err(TryRecvError::Closed) => {
+                warn!("process_frustum_thread: stop signal channel closed");
+                break;
+            }
+            Err(TryRecvError::Empty) => {
+                debug!("process_frustum_thread: stop signal channel empty");
+            }
+            Err(TryRecvError::Lagged(_)) => {
+                warn!("process_frustum_thread: stop signal channel lagged");
+                break;
+            }
+        }
     }
     debug!("process_frustum_thread: is finished");
     Ok(())

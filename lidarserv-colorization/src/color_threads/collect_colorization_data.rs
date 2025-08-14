@@ -1,8 +1,7 @@
-use std::sync::{mpsc, Arc};
-use std::sync::mpsc::{Receiver, Sender};
 use crate::cli::AppOptions;
-use crate::color_threads::{ColorizationData, ImageIdAndFrustum, ImageIdAndVectorBuffer};
 use crate::color_threads::status::Status;
+use crate::color_threads::{ColorizationData, ImageIdAndVectorBuffer};
+use std::sync::{mpsc, Arc};
 
 pub(crate) fn collect_colorization_data_thread(
     args: AppOptions,

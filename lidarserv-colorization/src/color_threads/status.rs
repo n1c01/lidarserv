@@ -67,7 +67,7 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
             stop_reason.to_string()
         } else {
             all_stopped = false;
-            format!("{:3} msg/s", nr_received_images,)
+            format!("{:3} msg/s", nr_received_images, )
         };
         let process_part = if all_stopped && buffer1 == 0 && nr_process_frustum_out == 0 {
             stop_reason.to_string()
