@@ -78,7 +78,7 @@ pub async fn send_frustum_thread(
                 }
                 PartialResult::Complete => {
                     debug!("image_id {:?}: Received Complete message.",current_image_id);
-                    break; //todo! dont break directly, updates may be received out of order.
+                    //break; //todo! dont break directly, updates may be received out of order.
                 }
             }
             //todo: send mark done.

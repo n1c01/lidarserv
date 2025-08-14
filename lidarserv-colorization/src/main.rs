@@ -117,7 +117,6 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let join_lidarserv_answer = {
         thread::spawn(move || {
             collect_colorization_data_thread(args4, points_rx,colorization_data_tx, status4).log_error();
-            //todo!("lidarserv answer thread")
             exit_tx4.send(()).ok()
         })
     };

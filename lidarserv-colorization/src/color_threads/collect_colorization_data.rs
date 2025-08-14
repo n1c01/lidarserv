@@ -12,6 +12,7 @@ pub(crate) fn collect_colorization_data_thread(
 ) -> anyhow::Result<()> {
     loop {
         //loop loop woop woop
+        //todo!("lidarserv answer thread")
 
         //receive points from the points_rx channel
 
