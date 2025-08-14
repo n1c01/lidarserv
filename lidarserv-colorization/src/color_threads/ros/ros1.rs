@@ -34,10 +34,8 @@ pub(crate) fn ros_thread(
     let image_callback = move |msg: messages::sensor_msgs::Image| {
         status1.nr_received_images.fetch_add(1, Ordering::Relaxed); //add 1 more image message to the counter
         let current_image_id = image_id.fetch_add(1, Ordering::Relaxed);
-        debug!(
-            "image message header: {:?} of image_id: {:?}",
-            msg.header, current_image_id
-        );
+        
+        debug!("image_id {:?} \nMessage header: {:?} ", current_image_id, msg.header,);
         image_tx
             .send(parse_image_message(msg, current_image_id))
             .ok();

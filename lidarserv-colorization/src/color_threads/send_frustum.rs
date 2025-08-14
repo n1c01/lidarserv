@@ -22,17 +22,27 @@ pub async fn send_frustum_thread(
     debug!("Send Frustum Thread: Started");
     // connect to viewerClient
     let (_shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
+    debug!("args:{:?}", args);
     let mut client =
         ViewerClient::connect((args.host.as_str(), args.port), &mut shutdown_rx).await?;
     //loop to wait for new frustums to query.
     loop {
-        let image_id_and_frustum = image_id_and_frustum_data_rx.recv()?;
+        let image_id_and_frustum = match image_id_and_frustum_data_rx.recv() {
+            Ok(data) => data,
+            Err(_) => {
+                warn!("Channel closed, exiting send_frustum_thread");
+                return Ok(());
+            }
+        };
         let frustum = image_id_and_frustum.frustum;
         let current_image_id = image_id_and_frustum.image_id;
+        debug!("image_id {:?}: start the query",current_image_id);
+
 
         let frustum_query = Query::ViewFrustum(frustum);
         //todo! wait for reader before next query is sent.
         //send query
+        debug!("image_id {:?}: Send query",current_image_id);
         client
             .write
             .query_oneshot(
@@ -44,11 +54,12 @@ pub async fn send_frustum_thread(
             .await?;
         //loop to receive all the parts of the view frustum query.
         loop {
-            let update: PartialResult<VectorBuffer> = client
+            debug!("image_id {:?}: receive points",current_image_id);
+            let update = client
                 .read
                 .receive_update_global_coordinates(&mut shutdown_rx)
                 .await?;
-
+            debug!("image_id {:?}: update is read and now matched: {:?}",current_image_id,update);
             match update {
                 PartialResult::DeleteNode(_) => warn!("Received unexpected DeleteNode message."),
                 PartialResult::UpdateNode(update) => {
@@ -58,13 +69,15 @@ pub async fn send_frustum_thread(
                     status
                         .frustum_query_received_nodes
                         .fetch_add(1, Ordering::Relaxed);
+                    debug!("image_id {:?} \nVectorbuffer: {:?}",current_image_id, update.points);
+
                     point_data_tx.send(ImageIdAndVectorBuffer{
                         image_id: current_image_id,
                         vector_buffer: update.points,
                     })?
                 }
                 PartialResult::Complete => {
-                    debug!("Received Complete message.");
+                    debug!("image_id {:?} \nReceived Complete message.",current_image_id);
                     break;
                 }
             }

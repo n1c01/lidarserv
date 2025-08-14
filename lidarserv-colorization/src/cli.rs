@@ -33,7 +33,7 @@ pub struct AppOptions {
     pub world_frame: String,
 
     /// Hostname of the lidarserv server
-    #[clap(long, default_value = "::0")]
+    #[clap(long, default_value = "::1")]
     pub host: String,
 
     /// Port of the lidarserv server
