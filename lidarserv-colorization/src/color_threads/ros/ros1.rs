@@ -12,6 +12,8 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+use pasture_core::nalgebra::Vector3;
+use lidarserv_common::nalgebra::{Point3, Vector2};
 
 pub(crate) fn ros_thread(
     app_options: AppOptions,
@@ -77,15 +79,15 @@ pub(crate) fn parse_image_message(msg: Image, image_id: u64) -> ImageData {
         sequence: msg.header.seq,
         image_id_and_frustum: ImageIdAndFrustum {
             image_id: image_id,
-            frustum: ViewFrustumQuery {
-                camera_pos: Default::default(),
-                camera_dir: Default::default(),
-                camera_up: Default::default(),
-                fov_y: 0.0,
-                z_near: 0.0,
-                z_far: 0.0,
-                window_size: Default::default(),
-                max_distance: 0.0,
+            frustum: ViewFrustumQuery { //example frustum todo: add real frustum
+                camera_pos: Point3::new(-54.40324866531016, 2.3269014261665073, 10.108743731819478),
+                camera_dir: Vector3::new(-0.8632547306347013, -0.374380434165962, -0.3385713522295046),
+                camera_up: Vector3::new(0.0,0.0,1.0),
+                fov_y: 0.7853981633974483,
+                z_near: 0.2985705572917801,
+                z_far: 298570.5573180077,
+                window_size: Vector2::new(500.0, 500.0),
+                max_distance: 10.0,
             },
         },
     }
