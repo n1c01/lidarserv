@@ -84,6 +84,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     //Processing frustum Thread
     //Processing Thread, that processes the camera position and calculates the frustum
     let (image_id_and_frustum_data_tx, image_id_and_frustum_data_rx) = mpsc::channel();
+    let (image_data_bypass_tx, image_data_bypass_rx) = mpsc::channel(); //Channel for the image data of the camera.
     let exit_tx2 = exit_tx.clone();
     let status2 = Arc::clone(&status);
     let args2 = args.clone();
@@ -130,7 +131,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let args4 = args.clone();
     let join_lidarserv_answer = {
         thread::spawn(move || {
-            collect_colorization_data_thread(args4, points_rx, colorization_data_tx, status4)
+            collect_colorization_data_thread(args4, points_rx, image_data_bypass_rx, colorization_data_tx, status4)
                 .log_error();
             exit_tx4.send(()).ok()
         })
