@@ -1,4 +1,4 @@
-use crate::color_threads::processing_frustum;
+use crate::color_threads::{processing_frustum};
 use crate::color_threads::processing_frustum::process_frustum_thread;
 use crate::color_threads::send_frustum::send_frustum_thread;
 use crate::color_threads::ros::ros_thread;
@@ -42,13 +42,8 @@ fn main() -> ExitCode {
 fn run(args: AppOptions) -> Result<(), Error> {
     //install the signal handler
     //preparing transmitters and receivers for stoping the program when Strg+c is pressed
-    let (stop_status_tx, stop_status_rx) = mpsc::channel();
-    let (stop_processing_frustum_tx, stop_processing_frustum_rx) = mpsc::channel();
-    let (stop_ros_read_tx, stop_ros_read_rx) = mpsc::channel();
-    let (stop_lidarserv_query_tx, stop_lidarserv_query_rx) = tokio::sync::broadcast::channel(1); //only one message sent therefore capacity one
-    let (stop_lidarserv_answer_tx, stop_lidarserv_answer_rx) = mpsc::channel();
-    let (stop_processing_colorization_tx, stop_processing_colorization_rx) = mpsc::channel();
-    let (stop_lidarserv_write_tx, stop_lidarserv_write_rx) = mpsc::channel();
+    let (stop_lidarserv_colorization_tx, stop_lidarserv_colorization_rx) = tokio::sync::broadcast::channel(1); //only one message sent therefore capacity one
+    let (stop_status_tx, stop_status_rx) = channel();
 
     let (exit_tx, exit_rx) = channel();
     {
@@ -59,13 +54,8 @@ fn run(args: AppOptions) -> Result<(), Error> {
                 exit_tx.send(()).ok();
                 first_ctrlc = false;
             } else {
+                stop_lidarserv_colorization_tx.send(()).ok();
                 stop_status_tx.send(()).ok();
-                stop_processing_frustum_tx.send(()).ok();
-                stop_ros_read_tx.send(()).ok();
-                stop_lidarserv_query_tx.send(()).ok();
-                stop_lidarserv_answer_tx.send(()).ok();
-                stop_processing_colorization_tx.send(()).ok();
-                stop_lidarserv_write_tx.send(()).ok();
             }
         })
         .expect("Failed to initialize Ctrl+C Handler");
@@ -79,37 +69,41 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let (commands_tx, commands_rx) = mpsc::channel();
     let (image_data_tx, image_data_rx) = mpsc::channel(); //Channel for the image data of the camera.
     let status = Arc::new(Status::default());
+    let exit_tx1 = exit_tx.clone();
     let status1 = Arc::clone(&status);
     let join_ros = {
-        let exit_tx = exit_tx.clone();
         let args1 = args.clone();
         thread::spawn(move || {
             ros_thread(args1, commands_rx, image_data_tx, status1).log_error();
-            exit_tx.send(()).ok()
+            exit_tx1.send(()).ok()
         })
     };
 
     //Processing frustum Thread
     //Processing Thread, that processes the camera position and calculates the frustum
     let (image_id_and_frustum_data_tx, image_id_and_frustum_data_rx) = mpsc::channel();
+    let exit_tx2 = exit_tx.clone();
     let status2 = Arc::clone(&status);
     let args2 = args.clone();
 
     let join_processing_frustum = {
         thread::spawn(move || {
-            process_frustum_thread(args2, image_data_rx, image_id_and_frustum_data_tx, status2).log_error();
+            process_frustum_thread(args2, stop_lidarserv_colorization_rx, image_data_rx, image_id_and_frustum_data_tx, status2).log_error();
+            exit_tx2.send(()).ok()
         })
     };
 
     //LidarServ query Thread
     //TODO: LidarServ Thread, that queries the frustum to retrieve the points from the lidarserv server
     let (points_tx, points_rx) = mpsc::channel(); //todo!(rename more precise)
+    let exit_tx3 = exit_tx.clone();
     let status3 = Arc::clone(&status);
     let args3 = args.clone();
     let join_lidarserv_query = {
         thread::spawn(move || {
             let rt = Runtime::new().unwrap();
             rt.block_on(send_frustum_thread(args3, image_id_and_frustum_data_rx,points_tx,status3)).log_error();
+            exit_tx3.send(()).ok()
         })
     };
 
@@ -118,6 +112,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let join_lidarserv_answer = {
         thread::spawn(move || {
             //todo!("lidarserv answer thread")
+            //exit_tx.send(()).ok()
         })
     };
 
@@ -127,6 +122,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
         thread::spawn(move || {
             //todo!("colorization thread")
             //init_colorize();
+            //exit_tx.send(()).ok()
         })
     };
 
@@ -135,6 +131,8 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let join_lidarserv_store = {
         thread::spawn(move || {
             //todo!("lidarserv store thread")
+            //exit_tx.send(()).ok()
+
         })
     };
 

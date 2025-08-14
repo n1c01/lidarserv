@@ -29,8 +29,8 @@ pub async fn send_frustum_thread(
     loop {
         let image_id_and_frustum = match image_id_and_frustum_data_rx.recv() {
             Ok(data) => data,
-            Err(_) => {
-                warn!("Channel closed, exiting send_frustum_thread");
+            Err(error) => {
+                warn!("image_id_and_frustum_data_rx error: {:?}",error);
                 return Ok(());
             }
         };

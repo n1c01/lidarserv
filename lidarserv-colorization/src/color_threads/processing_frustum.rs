@@ -7,9 +7,13 @@ use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use log::{debug, error, info, warn};
 use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc};
+use tokio::sync::broadcast;
+use tokio::sync::broadcast::error::TryRecvError;
+use tokio::sync::broadcast::Receiver;
 
 pub fn process_frustum_thread(
     args: AppOptions,
+    mut stop_lidarserv_colorization_rx: Receiver<()>,
     image_data_rx: mpsc::Receiver<ImageData>,
     frustum_data_tx: mpsc::Sender<ImageIdAndFrustum>,
     status: Arc<Status>,
@@ -21,8 +25,8 @@ pub fn process_frustum_thread(
         //todo! here waiting for more points could be impelmented. (e.g. wayting a fixed amout of time.)
         let image_data = match image_data_rx.recv() { //receiving image from ros input thread
             Ok(data) => data,
-            Err(_) => {
-                warn!("Channel closed, exiting send_frustum_thread");
+            Err(error) => {
+                warn!("image_data_rx error: {:?}",error);
                 return Ok(());
             }
         };
@@ -33,7 +37,25 @@ pub fn process_frustum_thread(
             .nr_process_frustum_out
             .fetch_add(1, Ordering::Relaxed);
 
-        //todo! make stopable
+        //handle stop signal
+         match stop_lidarserv_colorization_rx.try_recv() {
+             Ok(_) => {
+                 debug!("process_frustum_thread: stop signal received");
+                 break;
+             }
+             Err(TryRecvError::Closed) => {
+                 warn!("process_frustum_thread: stop signal channel closed");
+                 break;
+             }
+             Err(TryRecvError::Empty) => {
+                 debug!("process_frustum_thread: stop signal channel empty");
+             }
+             Err(TryRecvError::Lagged(_))  => {
+                 warn!("process_frustum_thread: stop signal channel lagged");
+                 break;
+             }
+         }
     }
     debug!("process_frustum_thread: is finished");
+    Ok(())
 }
