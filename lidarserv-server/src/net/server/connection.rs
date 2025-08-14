@@ -327,6 +327,7 @@ async fn viewer_mode(
         .await
         .unwrap()
         .unwrap()?;
+    //todo!(handle case where query thread panics (e.g. when unplausible frustum is queried))
     send_task.await.unwrap()?;
     result
 }
