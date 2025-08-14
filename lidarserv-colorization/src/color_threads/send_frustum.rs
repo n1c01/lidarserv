@@ -54,12 +54,12 @@ pub async fn send_frustum_thread(
             .await?;
         //loop to receive all the parts of the view frustum query.
         loop {
-            debug!("image_id {:?}: receive points",current_image_id);
+            //debug!("image_id {:?}: receive points updates are beeing matched",current_image_id);
             let update = client
                 .read
                 .receive_update_global_coordinates(&mut shutdown_rx)
                 .await?;
-            debug!("image_id {:?}: update is read and now matched: {:?}",current_image_id,update);
+            //debug!("image_id {:?}: update is read and now matched: {:?}",current_image_id,update);
             match update {
                 PartialResult::DeleteNode(_) => warn!("Received unexpected DeleteNode message."),
                 PartialResult::UpdateNode(update) => {
@@ -69,7 +69,7 @@ pub async fn send_frustum_thread(
                     status
                         .frustum_query_received_nodes
                         .fetch_add(1, Ordering::Relaxed);
-                    debug!("image_id {:?} \nVectorbuffer: {:?}",current_image_id, update.points);
+                    debug!("image_id {:?} Number of points read: {:?}",current_image_id, update.points.len());
 
                     point_data_tx.send(ImageIdAndVectorBuffer{
                         image_id: current_image_id,
@@ -77,8 +77,8 @@ pub async fn send_frustum_thread(
                     })?
                 }
                 PartialResult::Complete => {
-                    debug!("image_id {:?} \nReceived Complete message.",current_image_id);
-                    break;
+                    debug!("image_id {:?}: Received Complete message.",current_image_id);
+                    break; //todo! dont break directly, updates may be received out of order.
                 }
             }
             //todo: send mark done.
