@@ -53,7 +53,3 @@ pub struct ImageIdAndVectorBuffer {
     pub vector_buffer: VectorBuffer,
 }
 
-
-pub enum Command {
-    Exit,
-}
