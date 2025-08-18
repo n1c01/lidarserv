@@ -12,11 +12,12 @@ use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc};
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Receiver;
+use tokio_util::sync::CancellationToken;
 use crate::color_threads::cross_thread_functionality::check_stop_lidarserv_colorization;
 
 pub async fn send_frustum_thread(
     args: AppOptions,
-    mut stop_lidarserv_colorization_rx: Receiver<()>,
+    stop_token: CancellationToken,
     image_id_and_frustum_data_rx: mpsc::Receiver<ImageIdAndFrustum>, //Receiver to get the View Frustum Query for each image
     point_data_tx: mpsc::Sender<ImageIdAndVectorBuffer>,         //Sender to send the points to the viewer.
     //point_data_complete_tx: mpsc::Sender<>,
@@ -30,6 +31,11 @@ pub async fn send_frustum_thread(
         ViewerClient::connect((args.host.as_str(), args.port), &mut shutdown_rx).await?;
     //loop to wait for new frustums to query.
     loop {
+        //handle stop signal
+        if stop_token.is_cancelled() {
+            debug!("Send Frustum Thread: Stop signal received");
+            break;
+        }
         debug!("Send Frustum Thread: Waiting for new frustum to query");
         let image_id_and_frustum = match image_id_and_frustum_data_rx.recv() {
             Ok(data) => data,
@@ -88,12 +94,6 @@ pub async fn send_frustum_thread(
         debug!("image_id {:?}: query done",current_image_id);
 
         //todo: send data.
-
-        //handle stop signal
-        if check_stop_lidarserv_colorization(&mut stop_lidarserv_colorization_rx) {
-            debug!("process_frustum_thread: stop lidarserv colorization received");
-            break;
-        };
     }
     debug!("Send Frustum Thread: finished");
     Ok(())

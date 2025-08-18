@@ -18,6 +18,8 @@ use std::sync::{mpsc, Arc};
 use std::thread;
 use tokio::runtime::Runtime;
 use tokio::sync::broadcast;
+use tokio_util::sync::CancellationToken;
+
 
 mod cli;
 mod color_threads;
@@ -43,30 +45,38 @@ fn main() -> ExitCode {
 fn run(args: AppOptions) -> Result<(), Error> {
     //install the signal handler
     //preparing transmitters and receivers for stoping the program when Strg+c is pressed
-    let (stop_lidarserv_colorization_tx, stop_lidarserv_colorization_rx1) =
-        tokio::sync::broadcast::channel(1); //only one message sent therefore capacity one
-    let stop_lidarserv_colorization_rx2 = stop_lidarserv_colorization_tx.subscribe();
-    let stop_lidarserv_colorization_rx3 = stop_lidarserv_colorization_tx.subscribe();
-    let stop_lidarserv_colorization_rx4 = stop_lidarserv_colorization_tx.subscribe();
+
+    let stop_source = CancellationToken::new();
+    let child_token2 = stop_source.child_token();
+    let child_token3 = stop_source.child_token();
+    let child_token4 = stop_source.child_token();
 
     let (stop_status_tx, stop_status_rx) = channel();
 
     let (exit_tx, exit_rx) = channel();
     {
         let exit_tx = exit_tx.clone();
-        let mut first_ctrlc = true;
         ctrlc::set_handler(move || {
-            if first_ctrlc {
-                exit_tx.send(()).ok();
-                first_ctrlc = false;
-            } else {
-                stop_lidarserv_colorization_tx.send(()).ok();
-                stop_status_tx.send(()).ok();
-            }
+            debug!("Ctrl+C pressed.");
+            stop_source.cancel();
+            debug!("cooperative cancellation done");
+            exit_tx.send(()).ok();
+            debug!("exit message send");
         })
         .expect("Failed to initialize Ctrl+C Handler");
         info!("Press Ctrl+C to exit.");
     }
+    /*
+    debug!("before stop lidarserv colorization");
+    let broadcast_test = {
+        thread::spawn(move || {
+            let _ = stop_broadcast_rx0.recv();
+        })
+    }.join();
+    debug!("after stop lidarserv colorization");
+
+     */
+
 
     //ROS read connection Thread
     //sender: images from ROS
@@ -97,7 +107,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
         thread::spawn(move || {
             process_frustum_thread(
                 args2,
-                stop_lidarserv_colorization_rx2,
+                child_token2,
                 image_data_rx,
                 image_id_and_frustum_data_tx,
                 status2,
@@ -118,7 +128,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
             let rt = Runtime::new().unwrap();
             rt.block_on(send_frustum_thread(
                 args3,
-                stop_lidarserv_colorization_rx3,
+                child_token3,
                 image_id_and_frustum_data_rx,
                 points_tx,
                 status3,
@@ -136,7 +146,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let args4 = args.clone();
     let join_lidarserv_answer = {
         thread::spawn(move || {
-            collect_colorization_data_thread(args4, points_rx, image_data_bypass_rx, colorization_data_tx, status4)
+            collect_colorization_data_thread(args4,child_token4, points_rx, image_data_bypass_rx, colorization_data_tx, status4)
                 .log_error();
             exit_tx4.send(()).ok()
         })
@@ -171,35 +181,38 @@ fn run(args: AppOptions) -> Result<(), Error> {
 
     // wait for exit (user pressed ctrl+c, or one of the thread terminated unexpectedly)
     exit_rx.recv().unwrap();
-    let term = console::Term::stdout();
-    if !term.features().is_attended() {
-        info!("Shutting down...");
-    } else {
-        term.write_line("[⏹] Shutting down...").unwrap();
-        term.move_cursor_up(1).ok();
-    }
+
     status.shutdown.store(true, Ordering::Relaxed);
 
+    //todo: think about terminating threads forcfully after x amount of time. (e.g. 10 seconds)
+    debug!("stopping ros");
     //stop ROS read connection Thread
     commands_tx.send(color_threads::ros::Command::Exit).ok();
+    debug!("joining thread ros");
     join_ros.join().unwrap();
 
     //stop Processing frustum Thread
+    debug!("joining thread processing frustum");
     join_processing_frustum.join().unwrap();
 
     //stop LidarServ query Thread
+    debug!("joining thread lidarserv query");
     join_lidarserv_query.join().unwrap();
 
     //stop LidarServ answer Thread
+    debug!("joining thread lidarserv answer");
     join_lidarserv_answer.join().unwrap();
 
     //stop Processing colorization Thread
+    debug!("joining thread colorization");
     join_colorization.join().unwrap();
 
     //stop LidarServ store Thread
+    debug!("joining thread lidarserv store");
     join_lidarserv_store.join().unwrap();
 
     //stop status Thread
+    debug!("joining thread status");
     join_status.join().unwrap();
 
     // Be polite.

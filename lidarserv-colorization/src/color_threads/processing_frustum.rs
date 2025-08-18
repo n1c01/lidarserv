@@ -10,11 +10,12 @@ use std::sync::{mpsc, Arc};
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::error::TryRecvError;
 use tokio::sync::broadcast::Receiver;
+use tokio_util::sync::CancellationToken;
 use crate::color_threads::cross_thread_functionality::check_stop_lidarserv_colorization;
 
 pub fn process_frustum_thread(
     args: AppOptions,
-    mut stop_lidarserv_colorization_rx: Receiver<()>,
+    stop_token: CancellationToken,
     image_data_rx: mpsc::Receiver<ImageData>,
     frustum_data_tx: mpsc::Sender<ImageIdAndFrustum>,
     status: Arc<Status>,
@@ -23,6 +24,12 @@ pub fn process_frustum_thread(
 
     //loop waiting for image data to extract the frustum from it.
     loop {
+        //handle stop signal
+        if stop_token.is_cancelled() {
+            debug!("process_frustum_thread: Stop signal received");
+            break; 
+        } 
+
         //todo! here waiting for more points could be impelmented. (e.g. wayting a fixed amout of time.)
         let image_data = match image_data_rx.recv() { //receiving image from ros input thread
             Ok(data) => data,
@@ -38,11 +45,7 @@ pub fn process_frustum_thread(
             .nr_process_frustum_out
             .fetch_add(1, Ordering::Relaxed);
 
-        //handle stop signal
-        if check_stop_lidarserv_colorization(&mut stop_lidarserv_colorization_rx) {
-            debug!("process_frustum_thread: stop lidarserv colorization received");
-            break;
-        };
+
 
     }
     debug!("process_frustum_thread: is finished");
