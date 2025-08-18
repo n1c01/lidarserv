@@ -22,11 +22,12 @@ pub async fn send_frustum_thread(
     debug!("Send Frustum Thread: Started");
     // connect to viewerClient
     let (_shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
-    debug!("args:{:?}", args);
+    debug!("args: {:?}", args);
     let mut client =
         ViewerClient::connect((args.host.as_str(), args.port), &mut shutdown_rx).await?;
     //loop to wait for new frustums to query.
     loop {
+        debug!("Send Frustum Thread: Waiting for new frustum to query");
         let image_id_and_frustum = match image_id_and_frustum_data_rx.recv() {
             Ok(data) => data,
             Err(error) => {
@@ -76,11 +77,13 @@ pub async fn send_frustum_thread(
                 }
                 PartialResult::Complete => {
                     debug!("image_id {:?}: Received Complete message.",current_image_id);
-                    //break; //todo! maybe dont break directly, updates may be received out of order.
+                    break; //break as last points of frustum are received, due to channel properties order is guaranteed
                 }
             }
-            //todo: send mark done.
+            //todo: maybe send mark done. probably not needed.
         }
+        debug!("image_id {:?}: query done",current_image_id);
+
 
         //todo: send data.
     }

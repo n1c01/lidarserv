@@ -8,6 +8,7 @@ pub(crate) mod processing_frustum;
 pub(crate) mod ros;
 pub(crate) mod send_frustum;
 pub(crate) mod status;
+pub(crate) mod cross_thread_functionality;
 
 impl fmt::Debug for ImageData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
