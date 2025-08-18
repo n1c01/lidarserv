@@ -43,8 +43,12 @@ fn main() -> ExitCode {
 fn run(args: AppOptions) -> Result<(), Error> {
     //install the signal handler
     //preparing transmitters and receivers for stoping the program when Strg+c is pressed
-    let (stop_lidarserv_colorization_tx, stop_lidarserv_colorization_rx) =
+    let (stop_lidarserv_colorization_tx, stop_lidarserv_colorization_rx1) =
         tokio::sync::broadcast::channel(1); //only one message sent therefore capacity one
+    let stop_lidarserv_colorization_rx2 = stop_lidarserv_colorization_tx.subscribe();
+    let stop_lidarserv_colorization_rx3 = stop_lidarserv_colorization_tx.subscribe();
+    let stop_lidarserv_colorization_rx4 = stop_lidarserv_colorization_tx.subscribe();
+
     let (stop_status_tx, stop_status_rx) = channel();
 
     let (exit_tx, exit_rx) = channel();
@@ -93,7 +97,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
         thread::spawn(move || {
             process_frustum_thread(
                 args2,
-                stop_lidarserv_colorization_rx,
+                stop_lidarserv_colorization_rx2,
                 image_data_rx,
                 image_id_and_frustum_data_tx,
                 status2,
@@ -114,6 +118,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
             let rt = Runtime::new().unwrap();
             rt.block_on(send_frustum_thread(
                 args3,
+                stop_lidarserv_colorization_rx3,
                 image_id_and_frustum_data_rx,
                 points_tx,
                 status3,

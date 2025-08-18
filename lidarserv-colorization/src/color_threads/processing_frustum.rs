@@ -10,7 +10,7 @@ use std::sync::{mpsc, Arc};
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::error::TryRecvError;
 use tokio::sync::broadcast::Receiver;
-use crate::color_threads::cross_thread_functionality::stop_lidarserv_colorization;
+use crate::color_threads::cross_thread_functionality::check_stop_lidarserv_colorization;
 
 pub fn process_frustum_thread(
     args: AppOptions,
@@ -39,7 +39,7 @@ pub fn process_frustum_thread(
             .fetch_add(1, Ordering::Relaxed);
 
         //handle stop signal
-        if stop_lidarserv_colorization(&stop_lidarserv_colorization_rx) {
+        if check_stop_lidarserv_colorization(&mut stop_lidarserv_colorization_rx) {
             debug!("process_frustum_thread: stop lidarserv colorization received");
             break;
         };
