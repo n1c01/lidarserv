@@ -19,7 +19,8 @@ use std::thread;
 use tokio::runtime::Runtime;
 use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
-
+use crate::color_threads::colorization::colorization_thread;
+use crate::init_colorize::init_colorize;
 
 mod cli;
 mod color_threads;
@@ -50,6 +51,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let child_token2 = stop_source.child_token();
     let child_token3 = stop_source.child_token();
     let child_token4 = stop_source.child_token();
+    let child_token5 = stop_source.child_token();
 
     let (stop_status_tx, stop_status_rx) = channel();
 
@@ -149,12 +151,22 @@ fn run(args: AppOptions) -> Result<(), Error> {
     };
 
     //Processing colorization Thread
-    //TODO: Processing Thread, that colorizes the points
+    let exit_tx5 = exit_tx.clone();
+    let status5 = Arc::clone(&status);
+    let args5 = args.clone();
+    let (colorized_data_tx, colorized_data_rx) = mpsc::channel();
+
     let join_colorization = {
         thread::spawn(move || {
-            //todo!("colorization thread")
-            //init_colorize();
-            //exit_tx.send(()).ok()
+            //TODO: Processing colorization Thread, that colorizes the points
+            colorization_thread(
+                args5,
+                child_token5,
+                colorization_data_rx,
+                colorized_data_tx,
+                status5
+            ).log_error();
+            exit_tx5.send(()).ok()
         })
     };
 
