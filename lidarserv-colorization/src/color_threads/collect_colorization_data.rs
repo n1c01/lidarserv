@@ -43,7 +43,7 @@ pub(crate) fn collect_colorization_data_thread(
         let image_id_and_vec_buff = match points_rx.recv_timeout(Duration::new(1, 0)) {
             Ok(data) => {data}
             Err(_) => {
-                debug!("collect_colorization_data_thread: timeout (point data)");
+                //debug!("collect_colorization_data_thread: timeout (point data)");
                 continue;
             }
         };
