@@ -19,13 +19,12 @@ use std::thread;
 use tokio::runtime::Runtime;
 use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
-use crate::color_threads::colorization::colorization_thread;
+use crate::color_threads::colorization::managing_colorization::managing_colorization_thread;
 use crate::init_colorize::init_colorize;
 
 mod cli;
 mod color_threads;
 mod init_colorize;
-mod point_cloud_colorizer;
 
 fn main() -> ExitCode {
     // arg parsing
@@ -159,7 +158,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let join_colorization = {
         thread::spawn(move || {
             //TODO: Processing colorization Thread, that colorizes the points
-            colorization_thread(
+            managing_colorization_thread(
                 args5,
                 child_token5,
                 colorization_data_rx,

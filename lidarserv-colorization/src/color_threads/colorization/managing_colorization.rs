@@ -5,7 +5,7 @@ use crate::cli::AppOptions;
 use crate::color_threads::{ColorizationData, ImageData, ImageIdAndVectorBuffer};
 use crate::color_threads::status::Status;
 
-pub fn colorization_thread(
+pub (crate) fn managing_colorization_thread(
     args: AppOptions,
     stop_token: CancellationToken,
     colorization_data_rx: mpsc::Receiver<ColorizationData>,
@@ -19,6 +19,7 @@ pub fn colorization_thread(
             break;
         }
 
+        let colorization_data = colorization_data_rx.recv()?;
 
 
     }

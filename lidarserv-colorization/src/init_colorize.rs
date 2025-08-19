@@ -1,4 +1,4 @@
-use crate::point_cloud_colorizer::PointCloudColorizer;
+use crate::color_threads::colorization::point_cloud_colorizer::PointCloudColorizer;
 use las::point::Format;
 use las::{Builder, Reader, Writer};
 use std::io::BufWriter;
