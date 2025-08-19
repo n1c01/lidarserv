@@ -66,17 +66,6 @@ fn run(args: AppOptions) -> Result<(), Error> {
         .expect("Failed to initialize Ctrl+C Handler");
         info!("Press Ctrl+C to exit.");
     }
-    /*
-    debug!("before stop lidarserv colorization");
-    let broadcast_test = {
-        thread::spawn(move || {
-            let _ = stop_broadcast_rx0.recv();
-        })
-    }.join();
-    debug!("after stop lidarserv colorization");
-
-     */
-
 
     //ROS read connection Thread
     //sender: images from ROS
@@ -109,6 +98,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
                 args2,
                 child_token2,
                 image_data_rx,
+                image_data_bypass_tx,
                 image_id_and_frustum_data_tx,
                 status2,
             )
@@ -146,7 +136,13 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let args4 = args.clone();
     let join_lidarserv_answer = {
         thread::spawn(move || {
-            collect_colorization_data_thread(args4,child_token4, points_rx, image_data_bypass_rx, colorization_data_tx, status4)
+            collect_colorization_data_thread(
+                args4,
+                child_token4,
+                points_rx,
+                image_data_bypass_rx,
+                colorization_data_tx,
+                status4)
                 .log_error();
             exit_tx4.send(()).ok()
         })
@@ -212,6 +208,8 @@ fn run(args: AppOptions) -> Result<(), Error> {
     join_lidarserv_store.join().unwrap();
 
     //stop status Thread
+    debug!("stopping status thread");
+    stop_status_tx.send(()).ok();
     debug!("joining thread status");
     join_status.join().unwrap();
 

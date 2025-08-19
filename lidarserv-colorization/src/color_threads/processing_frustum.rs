@@ -17,6 +17,7 @@ pub fn process_frustum_thread(
     args: AppOptions,
     stop_token: CancellationToken,
     image_data_rx: mpsc::Receiver<ImageData>,
+    image_data_bypass_tx: mpsc::Sender<ImageData>,
     frustum_data_tx: mpsc::Sender<ImageIdAndFrustum>,
     status: Arc<Status>,
 ) -> anyhow::Result<()> {
@@ -32,12 +33,15 @@ pub fn process_frustum_thread(
 
         //todo! here waiting for more points could be impelmented. (e.g. wayting a fixed amout of time.)
         let image_data = match image_data_rx.recv() { //receiving image from ros input thread
-            Ok(data) => data,
+            Ok(data) => { 
+                data
+            },
             Err(error) => {
                 warn!("image_data_rx error: {:?}",error);
                 return Ok(());
             }
         };
+        image_data_bypass_tx.send(image_data.clone()).ok();
         status.nr_process_frustum_in.fetch_add(1, Ordering::Relaxed);
         debug!("image_id: {:?} \nThe frustum {:?}", image_data.image_id_and_frustum.image_id, image_data.image_id_and_frustum.frustum);
         frustum_data_tx.send(image_data.image_id_and_frustum).ok(); //sending image to lidarserv frustum query thread

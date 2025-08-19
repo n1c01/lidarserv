@@ -33,6 +33,25 @@ pub struct ImageData {
     pub encoding: String,
     pub image_id_and_frustum: ImageIdAndFrustum, //Image identifier and frustum query that can be used to query the image without the image data
 }
+
+impl ImageData {
+    pub(crate) fn clone(&self) -> ImageData {
+        ImageData {
+            image: self.image.clone(),
+            width: self.width,
+            height: self.height,
+            timestamp: self.timestamp,
+            sequence: self.sequence,
+            encoding: self.encoding.clone(),
+            image_id_and_frustum: ImageIdAndFrustum {
+                image_id: self.image_id_and_frustum.image_id,
+                frustum: self.image_id_and_frustum.frustum.clone(),
+            },
+        }
+    }
+}
+
+
 impl fmt::Debug for ImageIdAndFrustum {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ImageIdentifier")
@@ -51,7 +70,8 @@ pub struct ImageIdAndVectorBuffer {
     pub vector_buffer: VectorBuffer,
 }
 
+#[derive(Debug)]
 pub struct ColorizationData {
     pub image_data: ImageData,
-    pub point_data: VectorBuffer, //todo! validate type
+    pub point_data: Vec<VectorBuffer>, //todo! validate type
 }

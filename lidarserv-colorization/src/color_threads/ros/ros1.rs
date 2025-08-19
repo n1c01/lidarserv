@@ -61,7 +61,10 @@ pub(crate) fn ros_thread(
     thread::spawn(move || {
         for cmd in commands_rx {
             match cmd {
-                Command::Exit => rosrust::shutdown(),
+                Command::Exit => {
+                    debug!("ros1 thread: rosrust is shut down");
+                    rosrust::shutdown()
+                },
             }
         }
     });
