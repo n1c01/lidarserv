@@ -18,7 +18,7 @@ pub(crate) fn collect_colorization_data_thread(
     colorization_data_tx: mpsc::Sender<ColorizationData>,
     status: Arc<Status>,
 ) -> anyhow::Result<()> {
-    let mut image_data_map= HashMap::new();
+    let mut image_data_map:HashMap<u64,ImageData>= HashMap::new();
 
     loop {
         //handle stop signal
@@ -30,27 +30,13 @@ pub(crate) fn collect_colorization_data_thread(
         //todo!("lidarserv answer thread")
 
         //receive picture data, but timeout after 1 second (for cooperative cancellation to work)
-        let image_data = match picture_data_rx.recv_timeout(Duration::new(1, 0)) {
-            Ok(data) => {data}
-            Err(_) => {
-                // Timeout therefore skip to the next loop iteration
-                continue;
+        match picture_data_rx.recv_timeout(Duration::new(1, 0)) {
+            Ok(data) => {
+                //safe picture data for processing
+                safe_image_to_hashmap(data, &mut image_data_map);
             }
+            Err(_) => {/*Timeout therefore nothing happens here*/}
         };
-        let image_id = image_data.image_id_and_frustum.image_id;
-        let mut colorization_data = ColorizationData{
-            image_data,
-            point_data: Vec::new(),
-        };
-        let insertion_return = image_data_map.insert(
-            image_id,
-            colorization_data
-        );
-        if insertion_return.is_some() {
-            error!("collect_colorization_data_thread: image_id isnt unique");
-        } else {
-            debug!("collect_colorization_data_thread: image with id {:?} inserted into the hashmap",image_id);
-        }
 
 
         //receive points from the points_rx channel
@@ -61,20 +47,39 @@ pub(crate) fn collect_colorization_data_thread(
                 continue;
             }
         };
+        let image_data = image_data_map.get(&image_id_and_vec_buff.image_id).ok_or(anyhow::anyhow!("collect_colorization_data_thread: image_id not found"))?;
 
-        debug!("collect_colorization_data_thread: state of hashmap {:?}", image_data_map);
+        //debug!("collect_colorization_data_thread: state of hashmap {:?}", image_data_map);
 
 
+        //todo: remove picture data once all the points are received.
+        //image_data_map.remove()
 
-        //safe picture data for processing
-
-        //remove picture data once all the points are received.
-
-        //maybe wait for collection of all the points for the picture
+        //todo maybe wait for collection of all the points for the picture (not at the moment)
 
         //combine picture data and points to colorization data
+        let image_data = image_data.clone();
+        let colorization_data = ColorizationData{
+            image_data,
+            point_data: image_id_and_vec_buff.vector_buffer,
+        };
 
         //send colorization data to the colorization_data_tx channel
+        colorization_data_tx.send(colorization_data)?;
     }
+
     Ok(())
+}
+
+fn safe_image_to_hashmap(image_data: ImageData, image_data_map: &mut HashMap<u64, ImageData>) {
+    let image_id = image_data.image_id_and_frustum.image_id;
+    let insertion_return = image_data_map.insert(
+        image_id,
+        image_data,
+    );
+    if insertion_return.is_some() {
+        error!("collect_colorization_data_thread: image_id isnt unique");
+    } else {
+        debug!("collect_colorization_data_thread: image with id {:?} inserted into the hashmap",image_id);
+    }
 }

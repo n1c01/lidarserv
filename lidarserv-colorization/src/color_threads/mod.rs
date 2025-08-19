@@ -74,5 +74,5 @@ pub struct ImageIdAndVectorBuffer {
 #[derive(Debug)]
 pub struct ColorizationData {
     pub image_data: ImageData,
-    pub point_data: Vec<VectorBuffer>, //todo! validate type
+    pub point_data: VectorBuffer, //todo! validate type
 }
