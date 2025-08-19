@@ -7,7 +7,8 @@ use std::{
     thread,
     time::Duration,
 };
-
+use std::fmt::format;
+use std::ops::Add;
 use console::{style, Key};
 use log::info;
 
@@ -22,6 +23,11 @@ pub struct Status {
     pub nr_sent_queries: AtomicU64,    //Number of sent queries.
     pub frustum_query_received_points: AtomicU64, //Number of received points
     pub frustum_query_received_nodes: AtomicU64, //Number of received nodes
+    pub ros_thread_running:AtomicBool,
+    pub process_frustum_thread_running: AtomicBool,
+    pub send_frustum_thread_running: AtomicBool,
+    pub collect_colorization_data_thread_running: AtomicBool,
+    pub managing_colorization_thread_running: AtomicBool,
 }
 
 pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
@@ -42,6 +48,17 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
         let nr_tx_msg_query = status.nr_sent_queries.swap(0, Ordering::Relaxed);
         let paused = status.paused.load(Ordering::Relaxed);
         let shutdown = status.shutdown.load(Ordering::Relaxed);
+
+        let ros_thread_running = status.ros_thread_running.load(Ordering::Relaxed);
+        let process_frustum_thread_running = status.process_frustum_thread_running.load(Ordering::Relaxed);
+        let send_frustum_thread_running = status.send_frustum_thread_running.load(Ordering::Relaxed);
+        let collect_colorization_data_thread_running = status.collect_colorization_data_thread_running.load(Ordering::Relaxed);
+        let managing_colorization_thread_running = status.managing_colorization_thread_running.load(Ordering::Relaxed);
+
+
+        const CHECK: &str = "✓";
+        const CROSS: &str = "✗";
+
         buffer1 += nr_received_images as i64;
         buffer1 -= nr_process_frustum_in as i64;
         buffer2 += nr_process_frustum_out as i64;
@@ -84,8 +101,47 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
             all_stopped = false;
             format!("queue: {:2} msg | {:3} msg/s", buffer2, nr_tx_msg_query)
         };
+
+
+
+        let mut thread_states = String::new();
+        thread_states.push_str(
+            &style(if ros_thread_running { CHECK } else { CROSS })
+                .fg(if ros_thread_running { console::Color::Green } else { console::Color::Red })
+                .to_string(),
+        );
+
+        thread_states.push_str(
+            &style(if process_frustum_thread_running { CHECK } else { CROSS })
+                .fg(if process_frustum_thread_running { console::Color::Green } else { console::Color::Red })
+                .to_string(),
+        );
+
+        thread_states.push_str(
+            &style(if send_frustum_thread_running { CHECK } else { CROSS })
+                .fg(if send_frustum_thread_running { console::Color::Green } else { console::Color::Red })
+                .to_string(),
+        );
+
+        thread_states.push_str(
+            &style(if collect_colorization_data_thread_running { CHECK } else { CROSS })
+                .fg(if collect_colorization_data_thread_running { console::Color::Green } else { console::Color::Red })
+                .to_string(),
+        );
+
+        thread_states.push_str(
+            &style(if managing_colorization_thread_running { CHECK } else { CROSS })
+                .fg(if managing_colorization_thread_running { console::Color::Green } else { console::Color::Red })
+                .to_string(),
+        );
+
         if !all_stopped || !all_stopped_prev {
             println!(
+                "{}[{}{}]",
+                state_part,
+                style("Thread states: ").bold(),
+                thread_states,
+                /*
                 "{}[{} {}] [{} {}] [{} {}]",
                 state_part,
                 style("RX").bold(),
@@ -94,6 +150,8 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
                 process_part,
                 style("TX").bold(),
                 tx_part
+
+                 */
             );
         }
         if all_stopped && shutdown {

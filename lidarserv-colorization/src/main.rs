@@ -80,7 +80,10 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let join_ros = {
         let args1 = args.clone();
         thread::spawn(move || {
-            ros_thread(args1, commands_rx, image_data_tx, status1).log_error();
+            status1.ros_thread_running.store(true,Ordering::Relaxed);
+            ros_thread(args1, commands_rx, image_data_tx, status1.clone()).log_error();
+            status1.ros_thread_running.store(false,Ordering::Relaxed);
+            debug!("ros_thread: sending exit message");
             exit_tx1.send(()).ok()
         })
     };
@@ -95,15 +98,18 @@ fn run(args: AppOptions) -> Result<(), Error> {
 
     let join_processing_frustum = {
         thread::spawn(move || {
+            status2.process_frustum_thread_running.store(true,Ordering::Relaxed);
             process_frustum_thread(
                 args2,
                 child_token2,
                 image_data_rx,
                 image_data_bypass_tx,
                 image_id_and_frustum_data_tx,
-                status2,
+                status2.clone(),
             )
             .log_error();
+            status2.process_frustum_thread_running.store(false,Ordering::Relaxed);
+            debug!("process_frustum_thread: sending exit message");
             exit_tx2.send(()).ok()
         })
     };
@@ -117,14 +123,17 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let join_lidarserv_query = {
         thread::spawn(move || {
             let rt = Runtime::new().unwrap();
+            status3.send_frustum_thread_running.store(true,Ordering::Relaxed);
             rt.block_on(send_frustum_thread(
                 args3,
                 child_token3,
                 image_id_and_frustum_data_rx,
                 points_tx,
-                status3,
+                status3.clone(),
             ))
             .log_error();
+            status3.send_frustum_thread_running.store(false,Ordering::Relaxed);
+            debug!("send_frustum_thread: sending exit message");
             exit_tx3.send(()).ok()
         })
     };
@@ -137,14 +146,19 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let args4 = args.clone();
     let join_lidarserv_answer = {
         thread::spawn(move || {
+            status4.collect_colorization_data_thread_running.store(true, Ordering::Relaxed);
             collect_colorization_data_thread(
                 args4,
                 child_token4,
                 points_rx,
                 image_data_bypass_rx,
                 colorization_data_tx,
-                status4)
+                status4.clone()
+            )
                 .log_error();
+            status4.collect_colorization_data_thread_running.store(false, Ordering::Relaxed);
+
+            debug!("collect_colorization_data_thread: sending exit message");
             exit_tx4.send(()).ok()
         })
     };
@@ -157,14 +171,17 @@ fn run(args: AppOptions) -> Result<(), Error> {
 
     let join_colorization = {
         thread::spawn(move || {
-            //TODO: Processing colorization Thread, that colorizes the points
+            status5.managing_colorization_thread_running.store(true, Ordering::Relaxed);
+            //Processing colorization Thread, that colorizes the points
             managing_colorization_thread(
                 args5,
                 child_token5,
                 colorization_data_rx,
                 colorized_data_tx,
-                status5
+                status5.clone()
             ).log_error();
+            status5.managing_colorization_thread_running.store(false, Ordering::Relaxed);
+            debug!("managing_colorization_thread: sending exit message");
             exit_tx5.send(()).ok()
         })
     };
