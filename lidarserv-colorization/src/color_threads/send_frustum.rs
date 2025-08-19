@@ -82,6 +82,7 @@ pub async fn send_frustum_thread(
                     point_data_tx.send(ImageIdAndVectorBuffer {
                         image_id: current_image_id,
                         vector_buffer: update.points,
+                        //todo: partial result completed false, later true.
                     })?
                 }
                 PartialResult::Complete => {
