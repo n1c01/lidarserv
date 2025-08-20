@@ -27,7 +27,6 @@ pub(crate) fn collect_colorization_data_thread(
             break;
         }
         //loop loop woop woop
-        //todo!("lidarserv answer thread")
 
         //receive picture data, but timeout after 1 second (for cooperative cancellation to work)
         match picture_data_rx.recv_timeout(Duration::new(1, 0)) {

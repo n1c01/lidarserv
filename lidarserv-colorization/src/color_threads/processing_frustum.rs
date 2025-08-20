@@ -7,6 +7,8 @@ use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use log::{debug, error, info, warn};
 use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc};
+use std::thread;
+use std::time::Duration;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::error::TryRecvError;
 use tokio::sync::broadcast::Receiver;
@@ -31,7 +33,6 @@ pub fn process_frustum_thread(
             break; 
         } 
 
-        //todo! here waiting for more points could be impelmented. (e.g. wayting a fixed amout of time.)
         let image_data = match image_data_rx.recv() { //receiving image from ros input thread
             Ok(data) => { 
                 data
@@ -41,6 +42,9 @@ pub fn process_frustum_thread(
                 return Ok(());
             }
         };
+        //todo! here waiting for more points could be impelmented. (e.g. wayting a fixed amout of time.)
+        thread::sleep(Duration::from_secs(10));
+
         image_data_bypass_tx.send(image_data.clone()).ok();
         status.nr_process_frustum_in.fetch_add(1, Ordering::Relaxed);
         debug!("image_id: {:?} \nThe frustum {:?}", image_data.image_id_and_frustum.image_id, image_data.image_id_and_frustum.frustum);

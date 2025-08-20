@@ -69,6 +69,7 @@ pub struct ImageIdAndFrustum {
 pub struct ImageIdAndVectorBuffer {
     pub image_id: u64,
     pub vector_buffer: VectorBuffer,
+    pub image_complete: bool,
 }
 
 #[derive(Debug)]

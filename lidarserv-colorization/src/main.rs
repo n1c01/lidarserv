@@ -114,8 +114,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
         })
     };
 
-    //LidarServ query Thread
-    //TODO: LidarServ Thread, that queries the frustum to retrieve the points from the lidarserv server
+    //LidarServ query Thread, that queries the frustum to retrieve the points from the lidarserv server
     let (points_tx, points_rx) = mpsc::channel(); //todo!(rename more precise)
     let exit_tx3 = exit_tx.clone();
     let status3 = Arc::clone(&status);
@@ -138,8 +137,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
         })
     };
 
-    //LidarServ answer Thread
-    //TODO: LidarServ Thread, that recieves the points from the lidarserv server and sends them to the colorization thread
+    //LidarServ answer Thread, that recieves the points from the lidarserv server and sends them to the colorization thread
     let (colorization_data_tx, colorization_data_rx) = mpsc::channel();
     let exit_tx4 = exit_tx.clone();
     let status4 = Arc::clone(&status);
