@@ -47,6 +47,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     //preparing transmitters and receivers for stoping the program when Strg+c is pressed
 
     let stop_source = CancellationToken::new();
+    let stop_source2 = stop_source.clone();
     let child_token2 = stop_source.child_token();
     let child_token3 = stop_source.child_token();
     let child_token4 = stop_source.child_token();
@@ -203,7 +204,8 @@ fn run(args: AppOptions) -> Result<(), Error> {
 
     // wait for exit (user pressed ctrl+c, or one of the thread terminated unexpectedly)
     exit_rx.recv().unwrap();
-
+    //request cooperative cancellation due to an received exit signal.
+    stop_source2.cancel();
     status.shutdown.store(true, Ordering::Relaxed);
 
     //todo: think about terminating threads forcfully after x amount of time. (e.g. 10 seconds)
