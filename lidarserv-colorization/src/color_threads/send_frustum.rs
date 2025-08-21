@@ -7,9 +7,10 @@ use lidarserv_server::{
     net::client::viewer::{NodeUpdate, PartialResult, QueryConfig, ViewerClient},
 };
 use log::{debug, warn};
-use pasture_core::containers::{BorrowedBuffer, VectorBuffer};
+use pasture_core::containers::{BorrowedBuffer, MakeBufferFromLayout, VectorBuffer};
 use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc};
+use pasture_core::layout::PointLayout;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Receiver;
 use tokio_util::sync::CancellationToken;
@@ -82,15 +83,20 @@ pub async fn send_frustum_thread(
                     point_data_tx.send(ImageIdAndVectorBuffer {
                         image_id: current_image_id,
                         vector_buffer: update.points,
-                        //todo: partial result completed false, later true.
+                        image_complete: false,
                     })?
                 }
                 PartialResult::Complete => {
                     debug!("image_id {:?}: Received Complete message.",current_image_id);
+                    let layout = PointLayout::default(); // empty layout
+                    point_data_tx.send(ImageIdAndVectorBuffer {
+                        image_id: current_image_id,
+                        vector_buffer: VectorBuffer::new_from_layout(layout),
+                        image_complete: true,
+                    })?;
                     break; //break as last points of frustum are received, due to channel properties order is guaranteed
                 }
             }
-            //todo: maybe send mark done. probably not needed.
         }
         debug!("image_id {:?}: query done",current_image_id);
 

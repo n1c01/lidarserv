@@ -40,7 +40,16 @@ pub(crate) fn collect_colorization_data_thread(
 
         //receive points from the points_rx channel
         let image_id_and_vec_buff = match points_rx.recv_timeout(Duration::new(1, 0)) {
-            Ok(data) => {data}
+            Ok(data) => {
+                if data.image_complete {
+                    //todo! remove the image from the hashmap
+                    debug!("collect_colorization_data_thread: image with id {:?} complete", data.image_id);
+                    continue;
+                } else {
+                    data
+                }
+
+            }
             Err(_) => {
                 //debug!("collect_colorization_data_thread: timeout (point data)");
                 continue;
