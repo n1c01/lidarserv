@@ -31,12 +31,18 @@ pub fn process_frustum_thread(
         if stop_token.is_cancelled() {
             debug!("process_frustum_thread: Stop signal received");
             break; 
-        } 
+        }
 
-        let image_data = match image_data_rx.recv() { //receiving image from ros input thread
+        //receiving image from ros input thread (using timeout to release blocking and check cooperative cancellation)
+        let image_data = match image_data_rx.recv_timeout(Duration::from_secs(1)) {
             Ok(data) => { 
                 data
             },
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                //skip to check cancellation token
+                debug!("process_frustum_thread: timeout");
+                continue;
+            }
             Err(error) => {
                 warn!("image_data_rx error: {:?}",error);
                 return Ok(());
