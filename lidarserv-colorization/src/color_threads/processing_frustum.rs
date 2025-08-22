@@ -42,10 +42,10 @@ pub fn process_frustum_thread(
                 return Ok(());
             }
         };
-        //todo! here waiting for more points could be impelmented. (e.g. wayting a fixed amout of time.)
+        image_data_bypass_tx.send(image_data.clone()).ok();
+        //Here waiting for more points could be impelmented. (e.g. wayting a fixed amout of time.)
         thread::sleep(Duration::from_secs(10));
 
-        image_data_bypass_tx.send(image_data.clone()).ok();
         status.nr_process_frustum_in.fetch_add(1, Ordering::Relaxed);
         debug!("image_id: {:?} \nThe frustum {:?}", image_data.image_id_and_frustum.image_id, image_data.image_id_and_frustum.frustum);
         frustum_data_tx.send(image_data.image_id_and_frustum).ok(); //sending image to lidarserv frustum query thread
