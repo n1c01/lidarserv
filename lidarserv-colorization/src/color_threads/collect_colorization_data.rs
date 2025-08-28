@@ -42,8 +42,9 @@ pub(crate) fn collect_colorization_data_thread(
         let image_id_and_vec_buff = match points_rx.recv_timeout(Duration::new(1, 0)) {
             Ok(data) => {
                 if data.image_complete {
-                    //todo! remove the image from the hashmap
+                    //remove picture data once all the points are received.
                     debug!("collect_colorization_data_thread: image with id {:?} complete", data.image_id);
+                    image_data_map.remove(&data.image_id);
                     continue;
                 } else {
                     data
@@ -55,13 +56,20 @@ pub(crate) fn collect_colorization_data_thread(
                 continue;
             }
         };
-        let image_data = image_data_map.get(&image_id_and_vec_buff.image_id).ok_or(anyhow::anyhow!("collect_colorization_data_thread: image_id not found"))?;
+        let image_data = match image_data_map.get(&image_id_and_vec_buff.image_id){
+            None => {
+                debug!("collect_colorization_data_thread: image with id: {:?} not in hashmap", &image_id_and_vec_buff.image_id );
+                return Err(anyhow::anyhow!("collect_colorization_data_thread: image_id not found"));
+                //todo handle problem by using a queue pop vecbuff with cloud checking if image is ready else push again to the end.
+            }
+            Some(data) => {
+                data
+            }
+        };
 
-        //debug!("collect_colorization_data_thread: state of hashmap {:?}", image_data_map);
+        debug!("collect_colorization_data_thread: state of hashmap {:?}", image_data_map);
 
 
-        //todo: remove picture data once all the points are received.
-        //image_data_map.remove()
 
         //todo maybe wait for collection of all the points for the picture (not at the moment)
 
