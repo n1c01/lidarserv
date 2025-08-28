@@ -1,8 +1,9 @@
 use std::sync::{mpsc, Arc};
+use image::{DynamicImage, ImageReader};
 use log::debug;
 use tokio_util::sync::CancellationToken;
 use crate::cli::AppOptions;
-use crate::color_threads::{ColorizationData, ImageData, ImageIdAndVectorBuffer};
+use crate::color_threads::{colorization::ColorizationData, ImageData, ImageIdAndVectorBuffer};
 use crate::color_threads::status::Status;
 
 pub (crate) fn managing_colorization_thread(
@@ -18,6 +19,7 @@ pub (crate) fn managing_colorization_thread(
             debug!("process_frustum_thread: Stop signal received");
             break;
         }
+        let mut dynamic_image = DynamicImage::new_rgb8(100, 100);
 
         let colorization_data = colorization_data_rx.recv()?;
 

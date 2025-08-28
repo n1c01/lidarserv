@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use crate::cli::AppOptions;
 use crate::color_threads::status::Status;
-use crate::color_threads::{ColorizationData, ImageData, ImageIdAndVectorBuffer};
+use crate::color_threads::{ImageData, ImageIdAndVectorBuffer, colorization::ColorizationData};
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
 use std::vec;
