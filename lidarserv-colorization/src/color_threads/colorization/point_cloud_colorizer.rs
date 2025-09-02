@@ -7,7 +7,14 @@ use lidarserv_common::nalgebra::{
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use std::fs::File;
 use std::io::BufWriter;
+use std::ops::Range;
 use std::path::Path;
+use std::sync::mpsc;
+use log::debug;
+use pasture_core::containers::{BorrowedBuffer, BorrowedBufferExt, BorrowedMutBuffer, OwningBuffer, VectorBuffer, AttributeView};
+use pasture_core::layout::attributes::POSITION_3D;
+use crate::color_threads::colorization::ColorizationData;
+use crate::color_threads::ImageIdAndVectorBuffer;
 
 /// The picture struct holds a view frustum and a corresponding dynamic image
 pub struct PointCloudColorizer {
@@ -24,16 +31,34 @@ impl PointCloudColorizer {
     /// Colorizes a point cloud (cloud_reader) with the picture (self) and outputs it (cloud_writer)
     pub fn colorize(
         &self,
-        mut cloud_reader: Reader,
-        mut cloud_writer: Writer<BufWriter<File>>,
+        mut colorization_data: ColorizationData,
+        mut colorized_data: ImageIdAndVectorBuffer,
     ) -> Result<&'static str, &'static str> {
         //Get the projection matrix to transform the points to the picture frustum
         let view_projection = self.get_projection();
 
         //Iterate over Cloud reader (colorize each point)
-        for point_result in cloud_reader.points() {
-            let point = point_result.unwrap_or_else(|e| panic!("Failed to read point: {}", e));
+        let mut vector_buffer:VectorBuffer =colorization_data.point_data;
 
+
+        //let points  = vector_buffer.view::<//todo type from config file>();
+
+        /*
+
+        //let mut view = AttributeView::new(&mut vector_buffer);
+        for point_data in points {
+            let position = point_data.get_attribute::<Vector3<f64>>(&POSITION_3D);
+            //vector_buffer.get_point(i, &mut point_data);
+            debug!("{:?}", point_data);
+            //let point = point_data.unwrap_or_else(|e| panic!("Failed to read point: {}", e));
+            let point = Point{
+                x: position.x,
+                y: position.y,
+                z: position.z,
+                intensity: point_data.intensity,
+                color: Some(Color::new(60, 10, 100)),
+                ..Default::default()
+            };
             let position;
             let color;
 
@@ -99,17 +124,24 @@ impl PointCloudColorizer {
                 .unwrap_or_else(|e| panic!("Failed to colorize point: {}", e));
 
             //write out the point
+            /*
             cloud_writer
                 .write_point(colorized_point)
                 .unwrap_or_else(|e| panic!("Failed to write point: {}", e))
-        }
 
+             */
+        }
+/*
         //close the writer
         cloud_writer
             .close()
             .unwrap_or_else(|e| panic!("Failed to close writer: {}", e));
 
+ */
+  */
         Ok("Done")
+
+
     }
 
     ///Get the projection matrix for the picture

@@ -27,12 +27,15 @@ pub fn init_colorize() {
     //let img = read_resize_picture(picture_height, picture_width, path_picture);
 
     let picture = PointCloudColorizer::example_picture(path_picture);
+    /*
     picture
         .colorize(
             create_las_reader(path_cloud_in),
             create_las_writer(path_cloud_out),
         )
         .expect("TODO: panic message");
+        
+     */
 }
 
 fn create_las_reader(path: &Path) -> Reader {
