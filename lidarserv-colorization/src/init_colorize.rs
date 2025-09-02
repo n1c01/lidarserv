@@ -34,7 +34,7 @@ pub fn init_colorize() {
             create_las_writer(path_cloud_out),
         )
         .expect("TODO: panic message");
-        
+
      */
 }
 

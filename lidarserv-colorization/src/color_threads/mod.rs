@@ -4,12 +4,12 @@ use std::fmt;
 use std::time::Duration;
 
 pub(crate) mod collect_colorization_data;
+pub(crate) mod colorization;
+pub(crate) mod cross_thread_functionality;
 pub(crate) mod processing_frustum;
 pub(crate) mod ros;
 pub(crate) mod send_frustum;
 pub(crate) mod status;
-pub(crate) mod cross_thread_functionality;
-pub (crate) mod colorization;
 
 impl fmt::Debug for ImageData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -52,7 +52,6 @@ impl ImageData {
     }
 }
 
-
 impl fmt::Debug for ImageIdAndFrustum {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ImageIdentifier")
@@ -71,5 +70,3 @@ pub struct ImageIdAndVectorBuffer {
     pub vector_buffer: VectorBuffer,
     pub image_complete: bool,
 }
-
-

@@ -64,7 +64,7 @@ pub(crate) fn ros_thread(
                 Command::Exit => {
                     debug!("ros1 thread: rosrust is shut down");
                     rosrust::shutdown()
-                },
+                }
             }
         }
     });

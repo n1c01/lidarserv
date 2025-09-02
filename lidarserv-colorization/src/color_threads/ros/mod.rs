@@ -4,7 +4,6 @@ use crate::color_threads::ImageData;
 use anyhow::Result;
 
 use std::sync::{mpsc, Arc};
-use tokio::sync::broadcast::Receiver;
 
 mod ros1;
 

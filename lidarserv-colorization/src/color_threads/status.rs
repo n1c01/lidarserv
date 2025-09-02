@@ -1,3 +1,7 @@
+use console::{style, Key};
+use log::info;
+use std::fmt::format;
+use std::ops::Add;
 use std::{
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
@@ -7,10 +11,6 @@ use std::{
     thread,
     time::Duration,
 };
-use std::fmt::format;
-use std::ops::Add;
-use console::{style, Key};
-use log::info;
 
 /// Holds status information printed regularly.
 #[derive(Debug, Default)]
@@ -23,7 +23,7 @@ pub struct Status {
     pub nr_sent_queries: AtomicU64,    //Number of sent queries.
     pub frustum_query_received_points: AtomicU64, //Number of received points
     pub frustum_query_received_nodes: AtomicU64, //Number of received nodes
-    pub ros_thread_running:AtomicBool,
+    pub ros_thread_running: AtomicBool,
     pub process_frustum_thread_running: AtomicBool,
     pub send_frustum_thread_running: AtomicBool,
     pub collect_colorization_data_thread_running: AtomicBool,
@@ -50,11 +50,17 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
         let shutdown = status.shutdown.load(Ordering::Relaxed);
 
         let ros_thread_running = status.ros_thread_running.load(Ordering::Relaxed);
-        let process_frustum_thread_running = status.process_frustum_thread_running.load(Ordering::Relaxed);
-        let send_frustum_thread_running = status.send_frustum_thread_running.load(Ordering::Relaxed);
-        let collect_colorization_data_thread_running = status.collect_colorization_data_thread_running.load(Ordering::Relaxed);
-        let managing_colorization_thread_running = status.managing_colorization_thread_running.load(Ordering::Relaxed);
-
+        let process_frustum_thread_running = status
+            .process_frustum_thread_running
+            .load(Ordering::Relaxed);
+        let send_frustum_thread_running =
+            status.send_frustum_thread_running.load(Ordering::Relaxed);
+        let collect_colorization_data_thread_running = status
+            .collect_colorization_data_thread_running
+            .load(Ordering::Relaxed);
+        let managing_colorization_thread_running = status
+            .managing_colorization_thread_running
+            .load(Ordering::Relaxed);
 
         const CHECK: &str = "✓";
         const CROSS: &str = "✗";
@@ -84,7 +90,7 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
             stop_reason.to_string()
         } else {
             all_stopped = false;
-            format!("{:3} msg/s", nr_received_images, )
+            format!("{:3} msg/s", nr_received_images,)
         };
         let process_part = if all_stopped && buffer1 == 0 && nr_process_frustum_out == 0 {
             stop_reason.to_string()
@@ -102,37 +108,71 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
             format!("queue: {:2} msg | {:3} msg/s", buffer2, nr_tx_msg_query)
         };
 
-
-
         let mut thread_states = String::new();
         thread_states.push_str(
             &style(if ros_thread_running { CHECK } else { CROSS })
-                .fg(if ros_thread_running { console::Color::Green } else { console::Color::Red })
+                .fg(if ros_thread_running {
+                    console::Color::Green
+                } else {
+                    console::Color::Red
+                })
                 .to_string(),
         );
 
         thread_states.push_str(
-            &style(if process_frustum_thread_running { CHECK } else { CROSS })
-                .fg(if process_frustum_thread_running { console::Color::Green } else { console::Color::Red })
-                .to_string(),
+            &style(if process_frustum_thread_running {
+                CHECK
+            } else {
+                CROSS
+            })
+            .fg(if process_frustum_thread_running {
+                console::Color::Green
+            } else {
+                console::Color::Red
+            })
+            .to_string(),
         );
 
         thread_states.push_str(
-            &style(if send_frustum_thread_running { CHECK } else { CROSS })
-                .fg(if send_frustum_thread_running { console::Color::Green } else { console::Color::Red })
-                .to_string(),
+            &style(if send_frustum_thread_running {
+                CHECK
+            } else {
+                CROSS
+            })
+            .fg(if send_frustum_thread_running {
+                console::Color::Green
+            } else {
+                console::Color::Red
+            })
+            .to_string(),
         );
 
         thread_states.push_str(
-            &style(if collect_colorization_data_thread_running { CHECK } else { CROSS })
-                .fg(if collect_colorization_data_thread_running { console::Color::Green } else { console::Color::Red })
-                .to_string(),
+            &style(if collect_colorization_data_thread_running {
+                CHECK
+            } else {
+                CROSS
+            })
+            .fg(if collect_colorization_data_thread_running {
+                console::Color::Green
+            } else {
+                console::Color::Red
+            })
+            .to_string(),
         );
 
         thread_states.push_str(
-            &style(if managing_colorization_thread_running { CHECK } else { CROSS })
-                .fg(if managing_colorization_thread_running { console::Color::Green } else { console::Color::Red })
-                .to_string(),
+            &style(if managing_colorization_thread_running {
+                CHECK
+            } else {
+                CROSS
+            })
+            .fg(if managing_colorization_thread_running {
+                console::Color::Green
+            } else {
+                console::Color::Red
+            })
+            .to_string(),
         );
 
         if !all_stopped || !all_stopped_prev {

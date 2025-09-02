@@ -1,20 +1,16 @@
+use crate::color_threads::colorization::ColorizationData;
+use crate::color_threads::ImageIdAndVectorBuffer;
 use image::imageops::FilterType;
 use image::{DynamicImage, GenericImageView, ImageReader, Pixel};
-use las::{Color, Point, Reader, Writer};
+use las::{Color, Point};
 use lidarserv_common::nalgebra::{
     Const, Isometry3, OMatrix, Perspective3, Point3, RowVector4, Vector2, Vector3, U4,
 };
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
-use std::fs::File;
-use std::io::BufWriter;
-use std::ops::Range;
+use pasture_core::containers::{
+    OwningBuffer, VectorBuffer,
+};
 use std::path::Path;
-use std::sync::mpsc;
-use log::debug;
-use pasture_core::containers::{BorrowedBuffer, BorrowedBufferExt, BorrowedMutBuffer, OwningBuffer, VectorBuffer, AttributeView};
-use pasture_core::layout::attributes::POSITION_3D;
-use crate::color_threads::colorization::ColorizationData;
-use crate::color_threads::ImageIdAndVectorBuffer;
 
 /// The picture struct holds a view frustum and a corresponding dynamic image
 pub struct PointCloudColorizer {
@@ -38,110 +34,107 @@ impl PointCloudColorizer {
         let view_projection = self.get_projection();
 
         //Iterate over Cloud reader (colorize each point)
-        let mut vector_buffer:VectorBuffer =colorization_data.point_data;
-
+        let mut vector_buffer: VectorBuffer = colorization_data.point_data;
 
         //let points  = vector_buffer.view::<//todo type from config file>();
 
         /*
 
-        //let mut view = AttributeView::new(&mut vector_buffer);
-        for point_data in points {
-            let position = point_data.get_attribute::<Vector3<f64>>(&POSITION_3D);
-            //vector_buffer.get_point(i, &mut point_data);
-            debug!("{:?}", point_data);
-            //let point = point_data.unwrap_or_else(|e| panic!("Failed to read point: {}", e));
-            let point = Point{
-                x: position.x,
-                y: position.y,
-                z: position.z,
-                intensity: point_data.intensity,
-                color: Some(Color::new(60, 10, 100)),
-                ..Default::default()
-            };
-            let position;
-            let color;
+                //let mut view = AttributeView::new(&mut vector_buffer);
+                for point_data in points {
+                    let position = point_data.get_attribute::<Vector3<f64>>(&POSITION_3D);
+                    //vector_buffer.get_point(i, &mut point_data);
+                    debug!("{:?}", point_data);
+                    //let point = point_data.unwrap_or_else(|e| panic!("Failed to read point: {}", e));
+                    let point = Point{
+                        x: position.x,
+                        y: position.y,
+                        z: position.z,
+                        intensity: point_data.intensity,
+                        color: Some(Color::new(60, 10, 100)),
+                        ..Default::default()
+                    };
+                    let position;
+                    let color;
 
-            //Find xy position of point in view frustum of the picture
-            match self.find_xy(&point, view_projection) {
-                Err(e) => {
-                    match e {
-                        //position is out of frame in relation to the camera (behind the camera)
-                        //TODO: check if this is the case
-                        "Position out of bounds (z-direction)" => {
-                            //skip points that are not represented by the picture
-                            continue;
+                    //Find xy position of point in view frustum of the picture
+                    match self.find_xy(&point, view_projection) {
+                        Err(e) => {
+                            match e {
+                                //position is out of frame in relation to the camera (behind the camera)
+                                //TODO: check if this is the case
+                                "Position out of bounds (z-direction)" => {
+                                    //skip points that are not represented by the picture
+                                    continue;
+                                }
+                                &_ => {
+                                    panic!("Failed to find xy position Error: {:?}", e)
+                                }
+                            }
                         }
-                        &_ => {
-                            panic!("Failed to find xy position Error: {:?}", e)
+                        Ok(p) => {
+                            position = p;
                         }
                     }
-                }
-                Ok(p) => {
-                    position = p;
-                }
-            }
 
-            //Find the Pixel corresponding to the point
-            match self.find_color(position) {
-                Err(error) => {
-                    match error {
-                        "Position out of bounds (x > picture)" => {
-                            //Don't return Points that are not covered by the picture
-                            //continue;
-                            //TODO: in future (when only accessing relevant points) this should probably return a error
-                            //TODO: remove testwise default color for points outside the picture
-                            color = Color::new(0, 250, 0);
-                        }
-                        "Position out of bounds (x < 0)" => {
-                            //Don't return Points that are not covered by the picture
-                            //continue;
-                            color = Color::new(0, 100, 0);
-                        }
-                        "Position out of bounds (y > picture)" => {
-                            //Don't return Points that are not covered by the picture
-                            //continue;
-                            color = Color::new(0, 0, 250);
-                        }
+                    //Find the Pixel corresponding to the point
+                    match self.find_color(position) {
+                        Err(error) => {
+                            match error {
+                                "Position out of bounds (x > picture)" => {
+                                    //Don't return Points that are not covered by the picture
+                                    //continue;
+                                    //TODO: in future (when only accessing relevant points) this should probably return a error
+                                    //TODO: remove testwise default color for points outside the picture
+                                    color = Color::new(0, 250, 0);
+                                }
+                                "Position out of bounds (x < 0)" => {
+                                    //Don't return Points that are not covered by the picture
+                                    //continue;
+                                    color = Color::new(0, 100, 0);
+                                }
+                                "Position out of bounds (y > picture)" => {
+                                    //Don't return Points that are not covered by the picture
+                                    //continue;
+                                    color = Color::new(0, 0, 250);
+                                }
 
-                        "Position out of bounds (y < 0)" => {
-                            //Don't return Points that are not covered by the picture
-                            //continue;
-                            color = Color::new(0, 0, 100);
+                                "Position out of bounds (y < 0)" => {
+                                    //Don't return Points that are not covered by the picture
+                                    //continue;
+                                    color = Color::new(0, 0, 100);
+                                }
+                                &_ => {
+                                    panic!("{:?}", error)
+                                }
+                            }
                         }
-                        &_ => {
-                            panic!("{:?}", error)
+                        Ok(c) => {
+                            color = c;
                         }
                     }
+                    //Colorize the point
+                    let colorized_point = self
+                        .colorize_point(&point, color)
+                        .unwrap_or_else(|e| panic!("Failed to colorize point: {}", e));
+
+                    //write out the point
+                    /*
+                    cloud_writer
+                        .write_point(colorized_point)
+                        .unwrap_or_else(|e| panic!("Failed to write point: {}", e))
+
+                     */
                 }
-                Ok(c) => {
-                    color = c;
-                }
-            }
-            //Colorize the point
-            let colorized_point = self
-                .colorize_point(&point, color)
-                .unwrap_or_else(|e| panic!("Failed to colorize point: {}", e));
+        /*
+                //close the writer
+                cloud_writer
+                    .close()
+                    .unwrap_or_else(|e| panic!("Failed to close writer: {}", e));
 
-            //write out the point
-            /*
-            cloud_writer
-                .write_point(colorized_point)
-                .unwrap_or_else(|e| panic!("Failed to write point: {}", e))
-
-             */
-        }
-/*
-        //close the writer
-        cloud_writer
-            .close()
-            .unwrap_or_else(|e| panic!("Failed to close writer: {}", e));
-
- */
-  */
+         */
+          */
         Ok("Done")
-
-
     }
 
     ///Get the projection matrix for the picture
