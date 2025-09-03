@@ -38,7 +38,7 @@ pub fn process_frustum_thread(
             Ok(data) => data,
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 //skip to check cancellation token
-                debug!("process_frustum_thread: timeout");
+                //debug!("process_frustum_thread: timeout");
                 continue;
             }
             Err(error) => {
