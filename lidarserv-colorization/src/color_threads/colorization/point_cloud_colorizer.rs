@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::color_threads::colorization::ColorizationData;
 use crate::color_threads::ImageIdAndVectorBuffer;
 use image::imageops::FilterType;
@@ -7,10 +8,11 @@ use lidarserv_common::nalgebra::{
     Const, Isometry3, OMatrix, Perspective3, Point3, RowVector4, Vector2, Vector3, U4,
 };
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
-use pasture_core::containers::{
-    OwningBuffer, VectorBuffer,
-};
+use pasture_core::containers::{BorrowedBuffer, BorrowedBufferExt, BorrowedMutBuffer, BorrowedMutBufferExt, OwningBuffer, VectorBuffer};
 use std::path::Path;
+use log::{debug, warn};
+use pasture_core::layout::attributes::{COLOR_RGB, POSITION_3D};
+use pasture_core::layout::PointType;
 
 /// The picture struct holds a view frustum and a corresponding dynamic image
 pub struct PointCloudColorizer {
@@ -33,16 +35,127 @@ impl PointCloudColorizer {
         //Get the projection matrix to transform the points to the picture frustum
         let view_projection = self.get_projection();
 
-        //Iterate over Cloud reader (colorize each point)
-        let mut vector_buffer: VectorBuffer = colorization_data.point_data;
+        //Iterate over pointcloud (colorize each point)
+        let mut vector_buffer = colorization_data.point_data;
+        if !vector_buffer.point_layout().has_attribute(&POSITION_3D){
+            return Err("Pointcloud does not have a position attribute");
+        } else if !vector_buffer.point_layout().has_attribute(&COLOR_RGB){
+            return Err("Pointcloud does not have a color attribute");
+        };
 
-        //let points  = vector_buffer.view::<//todo type from config file>();
+        let mut position:Vec<u8> = vec![0; POSITION_3D.size() as usize];
+        let mut color:Vec<u8> = vec![0; COLOR_RGB.size() as usize];
+        for i in 0..vector_buffer.len() {
+            BorrowedBuffer::get_attribute(
+                &vector_buffer,
+                &POSITION_3D,
+                i,
+                &mut position,
+            );
+            BorrowedBuffer::get_attribute(
+                &vector_buffer,
+                &COLOR_RGB,
+                i,
+                &mut color,
+            );
+            //vector_buffer.get_attribute(&POSITION_3D,i,position);
+            //vector_buffer.get_attribute(&COLOR_RGB,i,color);
+            let point = Point{
+                x: position[0] as f64,
+                y: position[1] as f64,
+                z: position[2] as f64,
+                ..Default::default()
+            };
+            match self.process_point(&point, view_projection) {
+                Ok(_) => {}
+                Err("Position out of bounds (z-direction)") => {warn!("Position out of bounds (z-direction)")}
+                Err(_) => {}
+            }
+            unsafe {
+                vector_buffer.set_attribute(
+                    &COLOR_RGB,
+                    i,
+                    &color);
+            }
+            
+        }
 
         /*
+        //let mut position = vector_buffer.view_attribute_mut::<Vector3<f64>>(&POSITION_3D);
+        //let mut color = vector_buffer.view_attribute_mut::<Vector3<u16>>(&COLOR_RGB);
+        //let position_color = position.iter_mut().zip(color.iter_mut());
+        let mut position = vector_buffer.view_attribute::<Vector3<f64>>(&POSITION_3D);
+        let mut color = vector_buffer.view_attribute_mut::<Vector3<u16>>(&COLOR_RGB);
 
+        //position.into_iter().for_each(|position,color| {
+        position.into_iter().for_each(|position| {
+        */
+
+        Ok("Done")
+    }
+
+    fn process_point(&self, point: &Point, view_projection: OMatrix<f64, Const<4>, U4>) -> Result<Point, &'static str> {
+        let position;
+        let color;
+        //Find xy position of point in view frustum of the picture
+        match self.find_xy(&point, view_projection) {
+            Ok(p) => {
+                position = p;
+            }
+            Err("Position out of bounds (z-direction)") => {
+                return Err("Position out of bounds (z-direction)")
+            }
+            Err(e) => {panic!("Failed to find xy position Error: {:?}", e)}
+
+        }
+        //Find the Pixel corresponding to the point
+        match self.find_color(position) {
+            Err(error) => {
+                match error {
+                    "Position out of bounds (x > picture)" => {
+                        //Don't return Points that are not covered by the picture
+                        //continue;
+                        //TODO: in future (when only accessing relevant points) this should probably return a error
+                        //TODO: remove testwise default color for points outside the picture
+                        color = Color::new(0, 250, 0);
+                    }
+                    "Position out of bounds (x < 0)" => {
+                        //Don't return Points that are not covered by the picture
+                        //continue;
+                        color = Color::new(0, 100, 0);
+                    }
+                    "Position out of bounds (y > picture)" => {
+                        //Don't return Points that are not covered by the picture
+                        //continue;
+                        color = Color::new(0, 0, 250);
+                    }
+
+                    "Position out of bounds (y < 0)" => {
+                        //Don't return Points that are not covered by the picture
+                        //continue;
+                        color = Color::new(0, 0, 100);
+                    }
+                    &_ => {
+                        panic!("{:?}", error)
+                    }
+                }
+            }
+            Ok(c) => {
+                color = c;
+            }
+        }
+
+        //Colorize the point
+        let colorized_point = self
+            .colorize_point(&point, color)
+            .unwrap_or_else(|e| panic!("Failed to colorize point: {}", e));
+
+        Ok(colorized_point)
+    }
+
+    /*
                 //let mut view = AttributeView::new(&mut vector_buffer);
                 for point_data in points {
-                    let position = point_data.get_attribute::<Vector3<f64>>(&POSITION_3D);
                     //vector_buffer.get_point(i, &mut point_data);
                     debug!("{:?}", point_data);
                     //let point = point_data.unwrap_or_else(|e| panic!("Failed to read point: {}", e));
@@ -133,9 +246,10 @@ impl PointCloudColorizer {
                     .unwrap_or_else(|e| panic!("Failed to close writer: {}", e));
 
          */
-          */
+
         Ok("Done")
     }
+     */
 
     ///Get the projection matrix for the picture
     /// # attributes
