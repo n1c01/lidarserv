@@ -71,10 +71,7 @@ pub(crate) fn collect_colorization_data_thread(
             Some(data) => data,
         };
 
-        debug!(
-            "collect_colorization_data_thread: state of hashmap {:?}",
-            image_data_map
-        );
+        //debug!("collect_colorization_data_thread: state of hashmap {:?}",image_data_map );
 
         //todo maybe wait for collection of all the points for the picture (not at the moment)
 
