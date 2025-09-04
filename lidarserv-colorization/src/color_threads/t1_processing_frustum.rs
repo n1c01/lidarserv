@@ -48,7 +48,7 @@ pub fn thread_1_process_frustum(
         };
         image_data_bypass_tx.send(image_data.clone()).ok();
         //Here waiting for more points could be impelmented. (e.g. wayting a fixed amout of time.)
-        thread::sleep(Duration::from_secs(10));
+        thread::sleep(Duration::from_secs(3));
 
         status.nr_process_frustum_in.fetch_add(1, Ordering::Relaxed);
         debug!(
