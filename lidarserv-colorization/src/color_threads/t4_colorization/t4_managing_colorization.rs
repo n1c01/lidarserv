@@ -20,19 +20,19 @@ pub(crate) fn thread_4_managing_colorization(
     loop {
         //handle stop signal
         if stop_token.is_cancelled() {
-            debug!("process_frustum_thread: Stop signal received");
+            debug!("thread_4_managing_colorization: Stop signal received");
             break;
         }
         let mut dynamic_image = DynamicImage::new_rgb8(100, 100);
 
         let colorization_data = match colorization_data_rx.recv_timeout(Duration::from_secs(1)) {
             Ok(data) => {
-                debug!("process_frustum_thread: colorization data received");
+                debug!("thread_4_managing_colorization: colorization data received");
                 data
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 //skip to check cancellation token
-                //debug!("process_frustum_thread: timeout");
+                //debug!("thread_4_managing_colorization: timeout");
                 continue;
             }
             Err(error) => {
@@ -60,10 +60,17 @@ pub(crate) fn thread_4_managing_colorization(
             },
             dynamic_image,
         };
-        debug!("process_frustum_thread: colorization started");
-        point_cloud_colorizer
-            .colorize(colorization_data)
-            .expect("Colorization failed");
+        debug!("thread_4_managing_colorization: colorization started");
+        match point_cloud_colorizer.colorize(colorization_data){
+            Ok(data) => {
+                debug!("thread_4_managing_colorization: colorization done")
+                //todo send colorized data
+            }
+            Err(error) => {
+                debug!("thread_4_managing_colorization: colorization failed, with error {:?}", error);
+                return Ok(());
+            }
+        }
     }
     Ok(())
 }

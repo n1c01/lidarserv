@@ -59,7 +59,6 @@ impl PointCloudColorizer {
                 z: position[2] as f64,
                 ..Default::default()
             };
-            debug!("PointCloudColorizer: Points beeing processed: {:?}", point);
             match self.process_point(&point, view_projection) {
                 Ok(_) => {}
                 Err("Position out of bounds (z-direction)") => {
