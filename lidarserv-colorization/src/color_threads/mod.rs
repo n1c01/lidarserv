@@ -3,13 +3,13 @@ use pasture_core::containers::{BorrowedBuffer, VectorBuffer};
 use std::fmt;
 use std::time::Duration;
 
+pub(crate) mod cross_thread_functionality;
+pub(crate) mod status;
+pub(crate) mod t0_ros;
+pub(crate) mod t1_processing_frustum;
+pub(crate) mod t2_send_frustum;
 pub(crate) mod t3_collect_colorization_data;
 pub(crate) mod t4_colorization;
-pub(crate) mod cross_thread_functionality;
-pub(crate) mod t1_processing_frustum;
-pub(crate) mod t0_ros;
-pub(crate) mod t2_send_frustum;
-pub(crate) mod status;
 
 impl fmt::Debug for ImageData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

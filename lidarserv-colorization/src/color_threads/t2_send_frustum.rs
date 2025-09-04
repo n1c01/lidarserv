@@ -82,7 +82,10 @@ pub async fn thread_2_send_frustum(
                         current_image_id,
                         update.points.len()
                     );
-                    debug!("image_id {:?}: Received UpdateNode message, sending points", current_image_id);
+                    debug!(
+                        "image_id {:?}: Received UpdateNode message, sending points",
+                        current_image_id
+                    );
                     point_data_tx.send(ImageIdAndVectorBuffer {
                         image_id: current_image_id,
                         vector_buffer: update.points,
@@ -95,11 +98,14 @@ pub async fn thread_2_send_frustum(
                         current_image_id
                     );
                     let layout = PointLayout::default(); // empty layout
-                    debug!("image_id {:?}: Received complete message, sending empty buffer", current_image_id);
+                    debug!(
+                        "image_id {:?}: Received complete message, sending empty buffer",
+                        current_image_id
+                    );
                     point_data_tx.send(ImageIdAndVectorBuffer {
                         image_id: current_image_id,
                         vector_buffer: VectorBuffer::new_from_layout(layout),
-                        image_complete: true,//todo change back
+                        image_complete: true, //todo change back
                     })?;
                     break; //break as last points of frustum are received, due to channel properties order is guaranteed
                 }

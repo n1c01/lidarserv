@@ -1,4 +1,3 @@
-use std::any::Any;
 use crate::color_threads::t4_colorization::ColorizationData;
 use crate::color_threads::ImageIdAndVectorBuffer;
 use image::imageops::FilterType;
@@ -8,11 +7,15 @@ use lidarserv_common::nalgebra::{
     Const, Isometry3, OMatrix, Perspective3, Point3, RowVector4, Vector2, Vector3, U4,
 };
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
-use pasture_core::containers::{BorrowedBuffer, BorrowedBufferExt, BorrowedMutBuffer, BorrowedMutBufferExt, OwningBuffer, VectorBuffer};
-use std::path::Path;
 use log::{debug, warn};
+use pasture_core::containers::{
+    BorrowedBuffer, BorrowedBufferExt, BorrowedMutBuffer, BorrowedMutBufferExt, OwningBuffer,
+    VectorBuffer,
+};
 use pasture_core::layout::attributes::{COLOR_RGB, POSITION_3D};
 use pasture_core::layout::PointType;
+use std::any::Any;
+use std::path::Path;
 
 /// The picture struct holds a view frustum and a corresponding dynamic image
 pub struct PointCloudColorizer {
@@ -37,30 +40,20 @@ impl PointCloudColorizer {
 
         //Iterate over pointcloud (colorize each point)
         let mut vector_buffer = colorization_data.point_data;
-        if !vector_buffer.point_layout().has_attribute(&POSITION_3D){
+        if !vector_buffer.point_layout().has_attribute(&POSITION_3D) {
             return Err("Pointcloud does not have a position attribute");
-        } else if !vector_buffer.point_layout().has_attribute(&COLOR_RGB){
+        } else if !vector_buffer.point_layout().has_attribute(&COLOR_RGB) {
             return Err("Pointcloud does not have a color attribute");
         };
 
-        let mut position:Vec<u8> = vec![0; POSITION_3D.size() as usize];
-        let mut color:Vec<u8> = vec![0; COLOR_RGB.size() as usize];
+        let mut position: Vec<u8> = vec![0; POSITION_3D.size() as usize];
+        let mut color: Vec<u8> = vec![0; COLOR_RGB.size() as usize];
         for i in 0..vector_buffer.len() {
-            BorrowedBuffer::get_attribute(
-                &vector_buffer,
-                &POSITION_3D,
-                i,
-                &mut position,
-            );
-            BorrowedBuffer::get_attribute(
-                &vector_buffer,
-                &COLOR_RGB,
-                i,
-                &mut color,
-            );
+            BorrowedBuffer::get_attribute(&vector_buffer, &POSITION_3D, i, &mut position);
+            BorrowedBuffer::get_attribute(&vector_buffer, &COLOR_RGB, i, &mut color);
             //vector_buffer.get_attribute(&POSITION_3D,i,position);
             //vector_buffer.get_attribute(&COLOR_RGB,i,color);
-            let point = Point{
+            let point = Point {
                 x: position[0] as f64,
                 y: position[1] as f64,
                 z: position[2] as f64,
@@ -69,16 +62,14 @@ impl PointCloudColorizer {
             debug!("PointCloudColorizer: Points beeing processed: {:?}", point);
             match self.process_point(&point, view_projection) {
                 Ok(_) => {}
-                Err("Position out of bounds (z-direction)") => {warn!("Position out of bounds (z-direction)")}
+                Err("Position out of bounds (z-direction)") => {
+                    warn!("Position out of bounds (z-direction)")
+                }
                 Err(_) => {}
             }
             unsafe {
-                vector_buffer.set_attribute(
-                    &COLOR_RGB,
-                    i,
-                    &color);
+                vector_buffer.set_attribute(&COLOR_RGB, i, &color);
             }
-            
         }
 
         /*
@@ -95,7 +86,11 @@ impl PointCloudColorizer {
         Ok("Done")
     }
 
-    fn process_point(&self, point: &Point, view_projection: OMatrix<f64, Const<4>, U4>) -> Result<Point, &'static str> {
+    fn process_point(
+        &self,
+        point: &Point,
+        view_projection: OMatrix<f64, Const<4>, U4>,
+    ) -> Result<Point, &'static str> {
         let position;
         let color;
         //Find xy position of point in view frustum of the picture
@@ -104,10 +99,11 @@ impl PointCloudColorizer {
                 position = p;
             }
             Err("Position out of bounds (z-direction)") => {
-                return Err("Position out of bounds (z-direction)")
+                return Err("Position out of bounds (z-direction)");
             }
-            Err(e) => {panic!("Failed to find xy position Error: {:?}", e)}
-
+            Err(e) => {
+                panic!("Failed to find xy position Error: {:?}", e)
+            }
         }
         //Find the Pixel corresponding to the point
         match self.find_color(position) {

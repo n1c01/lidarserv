@@ -50,7 +50,10 @@ pub(crate) fn thread_3_collect_colorization_data(
                     image_data_map.remove(&data.image_id);
                     continue;
                 } else {
-                    debug!("collect_colorization_data_thread: received points for image with id: {:?}", data.image_id);
+                    debug!(
+                        "collect_colorization_data_thread: received points for image with id: {:?}",
+                        data.image_id
+                    );
                     data
                 }
             }

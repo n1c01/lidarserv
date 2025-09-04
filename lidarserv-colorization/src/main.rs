@@ -1,9 +1,9 @@
+use crate::color_threads::status::{status_thread, Status};
+use crate::color_threads::t0_ros::thread_0_ros;
+use crate::color_threads::t1_processing_frustum::thread_1_process_frustum;
+use crate::color_threads::t2_send_frustum::thread_2_send_frustum;
 use crate::color_threads::t3_collect_colorization_data::thread_3_collect_colorization_data;
 use crate::color_threads::t4_colorization::t4_managing_colorization::thread_4_managing_colorization;
-use crate::color_threads::t1_processing_frustum::thread_1_process_frustum;
-use crate::color_threads::t0_ros::thread_0_ros;
-use crate::color_threads::t2_send_frustum::thread_2_send_frustum;
-use crate::color_threads::status::{status_thread, Status};
 use crate::color_threads::{t1_processing_frustum, ImageIdAndVectorBuffer};
 use crate::init_colorize::init_colorize;
 use anyhow::Result;

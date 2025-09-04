@@ -1,14 +1,14 @@
 use crate::cli::AppOptions;
 use crate::color_threads::status::Status;
+use crate::color_threads::t4_colorization::point_cloud_colorizer::PointCloudColorizer;
 use crate::color_threads::{t4_colorization::ColorizationData, ImageData, ImageIdAndVectorBuffer};
 use image::{DynamicImage, ImageReader};
+use lidarserv_common::nalgebra::{Point3, Vector2, Vector3};
+use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use log::{debug, warn};
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
-use lidarserv_common::nalgebra::{Point3, Vector2, Vector3};
-use lidarserv_common::query::view_frustum::ViewFrustumQuery;
-use crate::color_threads::t4_colorization::point_cloud_colorizer::PointCloudColorizer;
 
 pub(crate) fn thread_4_managing_colorization(
     args: AppOptions,
@@ -29,7 +29,7 @@ pub(crate) fn thread_4_managing_colorization(
             Ok(data) => {
                 debug!("process_frustum_thread: colorization data received");
                 data
-            },
+            }
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 //skip to check cancellation token
                 //debug!("process_frustum_thread: timeout");
@@ -40,8 +40,9 @@ pub(crate) fn thread_4_managing_colorization(
                 return Ok(());
             }
         };
-        
-        let point_cloud_colorizer = PointCloudColorizer{
+
+        let point_cloud_colorizer = PointCloudColorizer {
+            //todo use real colorizer
             frustum: ViewFrustumQuery {
                 //example frustum todo: add real frustum (positional data)
                 camera_pos: Point3::new(-54.40324866531016, 2.3269014261665073, 10.108743731819478),
@@ -59,9 +60,10 @@ pub(crate) fn thread_4_managing_colorization(
             },
             dynamic_image,
         };
-        point_cloud_colorizer.colorize(colorization_data).expect("TODO: panic message");
-
-        
+        debug!("process_frustum_thread: colorization started");
+        point_cloud_colorizer
+            .colorize(colorization_data)
+            .expect("Colorization failed");
     }
     Ok(())
 }
