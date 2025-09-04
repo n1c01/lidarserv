@@ -17,10 +17,10 @@ use pasture_core::layout::PointType;
 /// The picture struct holds a view frustum and a corresponding dynamic image
 pub struct PointCloudColorizer {
     ///View frustum for the image
-    frustum: ViewFrustumQuery,
+    pub(crate) frustum: ViewFrustumQuery,
 
     ///the image for the frustum
-    dynamic_image: DynamicImage,
+    pub(crate) dynamic_image: DynamicImage,
 }
 
 /// The implementation of the picture struct.
@@ -30,9 +30,9 @@ impl PointCloudColorizer {
     pub fn colorize(
         &self,
         mut colorization_data: ColorizationData,
-        mut colorized_data: ImageIdAndVectorBuffer,
     ) -> Result<&'static str, &'static str> {
         //Get the projection matrix to transform the points to the picture frustum
+        debug!("PointCloudColorizer: Getting projection matrix");
         let view_projection = self.get_projection();
 
         //Iterate over pointcloud (colorize each point)
@@ -66,6 +66,7 @@ impl PointCloudColorizer {
                 z: position[2] as f64,
                 ..Default::default()
             };
+            debug!("PointCloudColorizer: Points beeing processed: {:?}", point);
             match self.process_point(&point, view_projection) {
                 Ok(_) => {}
                 Err("Position out of bounds (z-direction)") => {warn!("Position out of bounds (z-direction)")}

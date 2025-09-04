@@ -186,6 +186,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
                 .managing_colorization_thread_running
                 .store(true, Ordering::Relaxed);
             //Processing colorization Thread, that colorizes the points
+            debug!("managing_colorization_thread: start thread");
             managing_colorization_thread(
                 args5,
                 child_token5,

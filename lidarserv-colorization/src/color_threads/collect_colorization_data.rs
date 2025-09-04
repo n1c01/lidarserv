@@ -38,6 +38,7 @@ pub(crate) fn collect_colorization_data_thread(
         };
 
         //receive points from the points_rx channel
+        //debug!("collect_colorization_data_thread: waiting for points");
         let image_id_and_vec_buff = match points_rx.recv_timeout(Duration::new(1, 0)) {
             Ok(data) => {
                 if data.image_complete {
@@ -49,6 +50,7 @@ pub(crate) fn collect_colorization_data_thread(
                     image_data_map.remove(&data.image_id);
                     continue;
                 } else {
+                    debug!("collect_colorization_data_thread: received points for image with id: {:?}", data.image_id);
                     data
                 }
             }
@@ -57,6 +59,9 @@ pub(crate) fn collect_colorization_data_thread(
                 continue;
             }
         };
+
+        //todo!("fix this seems to be not reachable");
+        debug!("collect_colorization_data_thread: received points");
         let image_data = match image_data_map.get(&image_id_and_vec_buff.image_id) {
             None => {
                 debug!(
@@ -83,6 +88,7 @@ pub(crate) fn collect_colorization_data_thread(
         };
 
         //send colorization data to the colorization_data_tx channel
+        debug!("collect_colorization_data_thread: sending colorization data");
         colorization_data_tx.send(colorization_data)?;
     }
 
