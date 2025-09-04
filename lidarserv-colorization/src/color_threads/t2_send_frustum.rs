@@ -86,11 +86,17 @@ pub async fn thread_2_send_frustum(
                         "image_id {:?}: Received UpdateNode message, sending points",
                         current_image_id
                     );
-                    point_data_tx.send(ImageIdAndVectorBuffer {
+                    match point_data_tx.send(ImageIdAndVectorBuffer {
                         image_id: current_image_id,
                         vector_buffer: update.points,
                         image_complete: false,
-                    })?
+                    }) {
+                        Ok(_) => {}
+                        Err(error) => {
+                            warn!("image_id {:?}: error sending points: {:?}", current_image_id, error);
+                            return Ok(());
+                        }
+                    }
                 }
                 PartialResult::Complete => {
                     debug!(

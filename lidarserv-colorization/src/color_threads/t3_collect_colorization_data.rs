@@ -92,7 +92,10 @@ pub(crate) fn thread_3_collect_colorization_data(
 
         //send colorization data to the colorization_data_tx channel
         debug!("collect_colorization_data_thread: sending colorization data");
-        colorization_data_tx.send(colorization_data)?;
+        colorization_data_tx.send(colorization_data).unwrap_or_else(|e| {
+            debug!("collect_colorization_data_thread: error sending colorization data: {:?}", e);
+        })
+
     }
 
     Ok(())
