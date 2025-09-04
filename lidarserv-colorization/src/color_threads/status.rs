@@ -62,8 +62,7 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
             .managing_colorization_thread_running
             .load(Ordering::Relaxed);
 
-        const CHECK: &str = "✓";
-        const CROSS: &str = "✗";
+
 
         buffer1 += nr_received_images as i64;
         buffer1 -= nr_process_frustum_in as i64;
@@ -109,71 +108,12 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
         };
 
         let mut thread_states = String::new();
-        thread_states.push_str(
-            &style(if ros_thread_running { CHECK } else { CROSS })
-                .fg(if ros_thread_running {
-                    console::Color::Green
-                } else {
-                    console::Color::Red
-                })
-                .to_string(),
-        );
+        check_or_cross(& mut thread_states, ros_thread_running,"t0_ros").expect("couldnt write status of ros thread");
+        check_or_cross(& mut thread_states, process_frustum_thread_running,"t1_frustum").expect("couldnt write status of process_frustum_thread");
+        check_or_cross(& mut thread_states, send_frustum_thread_running,"t2_send_f").expect("couldnt write status of send_frustum_thread");
+        check_or_cross(& mut thread_states, collect_colorization_data_thread_running,"t3_collect_p").expect("couldnt write status of collect_colorization_data_thread");
+        check_or_cross(& mut thread_states, managing_colorization_thread_running,"t4_colorize").expect("couldnt write status of managing_colorization_thread");
 
-        thread_states.push_str(
-            &style(if process_frustum_thread_running {
-                CHECK
-            } else {
-                CROSS
-            })
-            .fg(if process_frustum_thread_running {
-                console::Color::Green
-            } else {
-                console::Color::Red
-            })
-            .to_string(),
-        );
-
-        thread_states.push_str(
-            &style(if send_frustum_thread_running {
-                CHECK
-            } else {
-                CROSS
-            })
-            .fg(if send_frustum_thread_running {
-                console::Color::Green
-            } else {
-                console::Color::Red
-            })
-            .to_string(),
-        );
-
-        thread_states.push_str(
-            &style(if collect_colorization_data_thread_running {
-                CHECK
-            } else {
-                CROSS
-            })
-            .fg(if collect_colorization_data_thread_running {
-                console::Color::Green
-            } else {
-                console::Color::Red
-            })
-            .to_string(),
-        );
-
-        thread_states.push_str(
-            &style(if managing_colorization_thread_running {
-                CHECK
-            } else {
-                CROSS
-            })
-            .fg(if managing_colorization_thread_running {
-                console::Color::Green
-            } else {
-                console::Color::Red
-            })
-            .to_string(),
-        );
 
         if !all_stopped || !all_stopped_prev {
             println!(
@@ -225,4 +165,26 @@ pub fn control_thread(status: Arc<Status>) {
             Err(_) => return,
         }
     }
+}
+
+fn check_or_cross(thread_states: &mut String, thread_running: bool, thread_name:&str) -> anyhow::Result<()> {
+    const CHECK: &str = "✓";
+    const CROSS: &str = "✗";
+    thread_states.push_str(thread_name);
+    thread_states.push_str(":");
+    thread_states.push_str(
+        &style(if thread_running {
+            CHECK
+        } else {
+            CROSS
+        })
+            .fg(if thread_running {
+                console::Color::Green
+            } else {
+                console::Color::Red
+            })
+            .to_string());
+    thread_states.push_str(", ");
+
+    Ok(())
 }
