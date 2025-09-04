@@ -7,7 +7,7 @@ use std::sync::{mpsc, Arc};
 
 mod ros1;
 
-pub fn ros_thread(
+pub fn thread_0_ros(
     args: AppOptions,
     commands_rx: mpsc::Receiver<Command>,
     image_data_tx: mpsc::Sender<ImageData>,

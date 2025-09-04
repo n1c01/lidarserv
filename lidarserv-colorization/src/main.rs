@@ -1,10 +1,10 @@
-use crate::color_threads::collect_colorization_data::collect_colorization_data_thread;
-use crate::color_threads::colorization::managing_colorization::managing_colorization_thread;
-use crate::color_threads::processing_frustum::process_frustum_thread;
-use crate::color_threads::ros::ros_thread;
-use crate::color_threads::send_frustum::send_frustum_thread;
+use crate::color_threads::t3_collect_colorization_data::thread_3_collect_colorization_data;
+use crate::color_threads::t4_colorization::t4_managing_colorization::thread_4_managing_colorization;
+use crate::color_threads::t1_processing_frustum::thread_1_process_frustum;
+use crate::color_threads::t0_ros::thread_0_ros;
+use crate::color_threads::t2_send_frustum::thread_2_send_frustum;
 use crate::color_threads::status::{status_thread, Status};
-use crate::color_threads::{processing_frustum, ImageIdAndVectorBuffer};
+use crate::color_threads::{t1_processing_frustum, ImageIdAndVectorBuffer};
 use crate::init_colorize::init_colorize;
 use anyhow::Result;
 use anyhow::{Context, Error};
@@ -82,7 +82,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
         let args1 = args.clone();
         thread::spawn(move || {
             status1.ros_thread_running.store(true, Ordering::Relaxed);
-            ros_thread(args1, commands_rx, image_data_tx, status1.clone()).log_error();
+            thread_0_ros(args1, commands_rx, image_data_tx, status1.clone()).log_error();
             status1.ros_thread_running.store(false, Ordering::Relaxed);
             debug!("ros_thread: sending exit message");
             exit_tx1.send(()).ok()
@@ -102,7 +102,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
             status2
                 .process_frustum_thread_running
                 .store(true, Ordering::Relaxed);
-            process_frustum_thread(
+            thread_1_process_frustum(
                 args2,
                 child_token2,
                 image_data_rx,
@@ -130,7 +130,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
             status3
                 .send_frustum_thread_running
                 .store(true, Ordering::Relaxed);
-            rt.block_on(send_frustum_thread(
+            rt.block_on(thread_2_send_frustum(
                 args3,
                 child_token3,
                 image_id_and_frustum_data_rx,
@@ -156,7 +156,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
             status4
                 .collect_colorization_data_thread_running
                 .store(true, Ordering::Relaxed);
-            collect_colorization_data_thread(
+            thread_3_collect_colorization_data(
                 args4,
                 child_token4,
                 points_rx,
@@ -187,7 +187,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
                 .store(true, Ordering::Relaxed);
             //Processing colorization Thread, that colorizes the points
             debug!("managing_colorization_thread: start thread");
-            managing_colorization_thread(
+            thread_4_managing_colorization(
                 args5,
                 child_token5,
                 colorization_data_rx,
@@ -207,7 +207,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     //TODO: LidarServ Thread, that sends the processed points to the lidarserv server
     let join_lidarserv_store = {
         thread::spawn(move || {
-            //todo!("lidarserv store thread")
+            //todo!("lidarserv store thread 5")
             //exit_tx.send(()).ok()
         })
     };
@@ -229,7 +229,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     //todo: think about terminating threads forcfully after x amount of time. (e.g. 10 seconds)
     debug!("stopping ros");
     //stop ROS read connection Thread
-    commands_tx.send(color_threads::ros::Command::Exit).ok();
+    commands_tx.send(color_threads::t0_ros::Command::Exit).ok();
     debug!("joining thread ros");
     join_ros.join().unwrap();
 

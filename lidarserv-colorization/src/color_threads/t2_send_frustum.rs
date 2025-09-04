@@ -16,7 +16,7 @@ use tokio::sync::broadcast;
 use tokio::sync::broadcast::Receiver;
 use tokio_util::sync::CancellationToken;
 
-pub async fn send_frustum_thread(
+pub async fn thread_2_send_frustum(
     args: AppOptions,
     stop_token: CancellationToken,
     image_id_and_frustum_data_rx: mpsc::Receiver<ImageIdAndFrustum>, //Receiver to get the View Frustum Query for each image

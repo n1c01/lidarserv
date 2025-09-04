@@ -1,6 +1,6 @@
 use crate::cli::AppOptions;
 use crate::color_threads::cross_thread_functionality::check_stop_lidarserv_colorization;
-use crate::color_threads::ros::Command;
+use crate::color_threads::t0_ros::Command;
 use crate::color_threads::status::Status;
 use crate::color_threads::{ImageData, ImageIdAndFrustum};
 use anyhow::{anyhow, Error};
@@ -15,7 +15,7 @@ use tokio::sync::broadcast::error::TryRecvError;
 use tokio::sync::broadcast::Receiver;
 use tokio_util::sync::CancellationToken;
 
-pub fn process_frustum_thread(
+pub fn thread_1_process_frustum(
     args: AppOptions,
     stop_token: CancellationToken,
     image_data_rx: mpsc::Receiver<ImageData>,

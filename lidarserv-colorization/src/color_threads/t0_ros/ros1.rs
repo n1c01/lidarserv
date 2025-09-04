@@ -1,6 +1,6 @@
 use crate::cli::AppOptions;
-use crate::color_threads::ros::ros1::messages::sensor_msgs::Image;
-use crate::color_threads::ros::Command;
+use crate::color_threads::t0_ros::ros1::messages::sensor_msgs::Image;
+use crate::color_threads::t0_ros::Command;
 use crate::color_threads::status::Status;
 use crate::color_threads::{ImageData, ImageIdAndFrustum};
 use anyhow::anyhow;

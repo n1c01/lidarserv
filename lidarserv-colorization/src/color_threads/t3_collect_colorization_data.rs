@@ -1,7 +1,7 @@
 use crate::cli::AppOptions;
 use crate::color_threads::cross_thread_functionality::check_stop_lidarserv_colorization;
 use crate::color_threads::status::Status;
-use crate::color_threads::{colorization::ColorizationData, ImageData, ImageIdAndVectorBuffer};
+use crate::color_threads::{t4_colorization::ColorizationData, ImageData, ImageIdAndVectorBuffer};
 use log::{debug, error, warn};
 use std::collections::HashMap;
 use std::sync::{mpsc, Arc};
@@ -10,7 +10,7 @@ use std::vec;
 use tokio::sync::broadcast::Receiver;
 use tokio_util::sync::CancellationToken;
 
-pub(crate) fn collect_colorization_data_thread(
+pub(crate) fn thread_3_collect_colorization_data(
     args: AppOptions,
     stop_token: CancellationToken,
     points_rx: mpsc::Receiver<ImageIdAndVectorBuffer>,

@@ -1,5 +1,5 @@
 use std::any::Any;
-use crate::color_threads::colorization::ColorizationData;
+use crate::color_threads::t4_colorization::ColorizationData;
 use crate::color_threads::ImageIdAndVectorBuffer;
 use image::imageops::FilterType;
 use image::{DynamicImage, GenericImageView, ImageReader, Pixel};

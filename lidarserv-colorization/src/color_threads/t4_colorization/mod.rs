@@ -1,7 +1,7 @@
 use crate::color_threads::ImageData;
 use pasture_core::containers::VectorBuffer;
 
-pub mod managing_colorization;
+pub mod t4_managing_colorization;
 pub mod point_cloud_colorizer;
 
 #[derive(Debug)]
