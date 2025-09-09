@@ -28,6 +28,7 @@ pub struct Status {
     pub send_frustum_thread_running: AtomicBool,
     pub collect_colorization_data_thread_running: AtomicBool,
     pub managing_colorization_thread_running: AtomicBool,
+    pub t0_ros_current_image_id: AtomicU64,
     pub t1_process_frustum_thread_current_image_id: AtomicU64,
     pub t2_send_frustum_thread_current_image_id: AtomicU64,
 }
@@ -64,9 +65,9 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
             .managing_colorization_thread_running
             .load(Ordering::Relaxed);
 
-
-        let t2_send_frustum_thread_current_image_id = status.t2_send_frustum_thread_current_image_id.load(Ordering::Relaxed);
+        let t0_ros_current_image_id = status.t0_ros_current_image_id.load(Ordering::Relaxed);
         let t1_process_frustum_thread_current_image_id = status.t1_process_frustum_thread_current_image_id.load(Ordering::Relaxed);
+        let t2_send_frustum_thread_current_image_id = status.t2_send_frustum_thread_current_image_id.load(Ordering::Relaxed);
 
 
 
@@ -114,7 +115,7 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
         };
 
         let mut thread_states = String::new();
-        check_or_cross(& mut thread_states, ros_thread_running,"t0_ros",None).expect("couldnt write status of ros thread");
+        check_or_cross(& mut thread_states, ros_thread_running,"t0_ros",Option::from(t0_ros_current_image_id)).expect("couldnt write status of ros thread");
         check_or_cross(& mut thread_states, process_frustum_thread_running,"t1_frustum",Option::from(t1_process_frustum_thread_current_image_id)).expect("couldnt write status of process_frustum_thread");
         check_or_cross(& mut thread_states, send_frustum_thread_running, "t2_send_f", Option::from(t2_send_frustum_thread_current_image_id)).expect("couldnt write status of send_frustum_thread");
         check_or_cross(& mut thread_states, collect_colorization_data_thread_running,"t3_collect_p",None).expect("couldnt write status of collect_colorization_data_thread");
