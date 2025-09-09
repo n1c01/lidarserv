@@ -7,6 +7,7 @@ use lidarserv_common::nalgebra::{Point3, Vector2, Vector3};
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use log::{debug, warn};
 use std::sync::{mpsc, Arc};
+use std::sync::atomic::Ordering;
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 
@@ -28,6 +29,7 @@ pub(crate) fn thread_4_managing_colorization(
         let colorization_data = match colorization_data_rx.recv_timeout(Duration::from_secs(1)) {
             Ok(data) => {
                 debug!("thread_4_managing_colorization: colorization data received");
+                status.t4_managing_colorization_thread_current_image_id.store(data.image_data.image_id_and_frustum.image_id,Ordering::Relaxed);
                 data
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {

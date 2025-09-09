@@ -5,6 +5,7 @@ use crate::color_threads::{t4_colorization::ColorizationData, ImageData, ImageId
 use log::{debug, error, warn};
 use std::collections::HashMap;
 use std::sync::{mpsc, Arc};
+use std::sync::atomic::Ordering;
 use std::time::Duration;
 use std::vec;
 use tokio::sync::broadcast::Receiver;
@@ -32,6 +33,7 @@ pub(crate) fn thread_3_collect_colorization_data(
         match picture_data_rx.recv_timeout(Duration::new(1, 0)) {
             Ok(data) => {
                 //safe picture data for processing
+                status.t3_collect_colorization_data_thread_current_image_id.store(data.image_id_and_frustum.image_id,Ordering::Relaxed);
                 safe_image_to_hashmap(data, &mut image_data_map);
             }
             Err(_) => { /*Timeout therefore nothing happens here*/ }
