@@ -28,6 +28,8 @@ pub struct Status {
     pub send_frustum_thread_running: AtomicBool,
     pub collect_colorization_data_thread_running: AtomicBool,
     pub managing_colorization_thread_running: AtomicBool,
+    pub t1_process_frustum_thread_current_image_id: AtomicU64,
+    pub t2_send_frustum_thread_current_image_id: AtomicU64,
 }
 
 pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
@@ -61,6 +63,10 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
         let managing_colorization_thread_running = status
             .managing_colorization_thread_running
             .load(Ordering::Relaxed);
+
+
+        let t2_send_frustum_thread_current_image_id = status.t2_send_frustum_thread_current_image_id.load(Ordering::Relaxed);
+        let t1_process_frustum_thread_current_image_id = status.t1_process_frustum_thread_current_image_id.load(Ordering::Relaxed);
 
 
 
@@ -108,11 +114,11 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
         };
 
         let mut thread_states = String::new();
-        check_or_cross(& mut thread_states, ros_thread_running,"t0_ros").expect("couldnt write status of ros thread");
-        check_or_cross(& mut thread_states, process_frustum_thread_running,"t1_frustum").expect("couldnt write status of process_frustum_thread");
-        check_or_cross(& mut thread_states, send_frustum_thread_running,"t2_send_f").expect("couldnt write status of send_frustum_thread");
-        check_or_cross(& mut thread_states, collect_colorization_data_thread_running,"t3_collect_p").expect("couldnt write status of collect_colorization_data_thread");
-        check_or_cross(& mut thread_states, managing_colorization_thread_running,"t4_colorize").expect("couldnt write status of managing_colorization_thread");
+        check_or_cross(& mut thread_states, ros_thread_running,"t0_ros",None).expect("couldnt write status of ros thread");
+        check_or_cross(& mut thread_states, process_frustum_thread_running,"t1_frustum",Option::from(t1_process_frustum_thread_current_image_id)).expect("couldnt write status of process_frustum_thread");
+        check_or_cross(& mut thread_states, send_frustum_thread_running, "t2_send_f", Option::from(t2_send_frustum_thread_current_image_id)).expect("couldnt write status of send_frustum_thread");
+        check_or_cross(& mut thread_states, collect_colorization_data_thread_running,"t3_collect_p",None).expect("couldnt write status of collect_colorization_data_thread");
+        check_or_cross(& mut thread_states, managing_colorization_thread_running,"t4_colorize",None).expect("couldnt write status of managing_colorization_thread");
 
 
         if !all_stopped || !all_stopped_prev {
@@ -167,10 +173,10 @@ pub fn control_thread(status: Arc<Status>) {
     }
 }
 
-fn check_or_cross(thread_states: &mut String, thread_running: bool, thread_name:&str) -> anyhow::Result<()> {
+fn check_or_cross(thread_states: &mut String, thread_running: bool, thread_name:&str, thread_image_id:Option<u64>) -> anyhow::Result<()> {
     const CHECK: &str = "✓";
     const CROSS: &str = "✗";
-    thread_states.push_str(thread_name);
+    thread_states.push_str(&style(thread_name).bold().to_string());
     thread_states.push_str(":");
     thread_states.push_str(
         &style(if thread_running {
@@ -184,6 +190,10 @@ fn check_or_cross(thread_states: &mut String, thread_running: bool, thread_name:
                 console::Color::Red
             })
             .to_string());
+    if thread_image_id.is_some() {
+        thread_states.push_str(" image ID: ");
+        thread_states.push_str(&thread_image_id.unwrap().to_string());
+    }
     thread_states.push_str(", ");
 
     Ok(())

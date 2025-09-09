@@ -35,7 +35,10 @@ pub fn thread_1_process_frustum(
 
         //receiving image from ros input thread (using timeout to release blocking and check cooperative cancellation)
         let image_data = match image_data_rx.recv_timeout(Duration::from_secs(1)) {
-            Ok(data) => data,
+            Ok(data) => {
+                status.t1_process_frustum_thread_current_image_id.store(data.image_id_and_frustum.image_id, Ordering::Relaxed);
+                data
+            },
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 //skip to check cancellation token
                 //debug!("process_frustum_thread: timeout");

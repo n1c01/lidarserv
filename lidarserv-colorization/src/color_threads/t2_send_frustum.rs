@@ -12,6 +12,7 @@ use pasture_core::containers::{BorrowedBuffer, MakeBufferFromLayout, VectorBuffe
 use pasture_core::layout::PointLayout;
 use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc};
+use std::time::Duration;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Receiver;
 use tokio_util::sync::CancellationToken;
@@ -38,8 +39,14 @@ pub async fn thread_2_send_frustum(
             break;
         }
         debug!("Send Frustum Thread: Waiting for new frustum to query");
-        let image_id_and_frustum = match image_id_and_frustum_data_rx.recv() {
-            Ok(data) => data,
+        let image_id_and_frustum = match image_id_and_frustum_data_rx.recv_timeout(Duration::new(1,0)) {
+            Ok(data) => {
+                status.t2_send_frustum_thread_current_image_id.store(data.image_id, Ordering::Relaxed);
+                data
+            },
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                continue;
+            }
             Err(error) => {
                 warn!("image_id_and_frustum_data_rx error: {:?}", error);
                 return Ok(());
@@ -77,15 +84,8 @@ pub async fn thread_2_send_frustum(
                     status
                         .frustum_query_received_nodes
                         .fetch_add(1, Ordering::Relaxed);
-                    debug!(
-                        "image_id {:?} Number of points read: {:?}",
-                        current_image_id,
-                        update.points.len()
-                    );
-                    debug!(
-                        "image_id {:?}: Received UpdateNode message, sending points",
-                        current_image_id
-                    );
+                    //debug!("image_id {:?} Number of points read: {:?}", current_image_id, update.points.len());
+                    //debug!("image_id {:?}: Received UpdateNode message, sending points", current_image_id );
                     match point_data_tx.send(ImageIdAndVectorBuffer {
                         image_id: current_image_id,
                         vector_buffer: update.points,
