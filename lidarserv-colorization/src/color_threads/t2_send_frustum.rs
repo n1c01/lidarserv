@@ -27,10 +27,8 @@ pub async fn thread_2_send_frustum(
 ) -> anyhow::Result<()> {
     debug!("Send Frustum Thread: Started");
     // connect to viewerClient
-    let (_shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
-    debug!("args: {:?}", args);
-    let mut client =
-        ViewerClient::connect((args.host.as_str(), args.port), &mut shutdown_rx).await?;
+    let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
+    let mut client = ViewerClient::connect((args.host.as_str(), args.port), &mut shutdown_rx).await?;
     //loop to wait for new frustums to query.
     loop {
         //handle stop signal
@@ -38,7 +36,6 @@ pub async fn thread_2_send_frustum(
             debug!("Send Frustum Thread: Stop signal received");
             break;
         }
-        //debug!("Send Frustum Thread: Waiting for new frustum to query");
         let image_id_and_frustum = match image_id_and_frustum_data_rx.recv_timeout(Duration::new(1,0)) {
             Ok(data) => {
                 status.t2_send_frustum_thread_current_image_id.store(data.image_id, Ordering::Relaxed);
@@ -54,10 +51,9 @@ pub async fn thread_2_send_frustum(
         };
         let frustum = image_id_and_frustum.frustum;
         let current_image_id = image_id_and_frustum.image_id;
-        debug!("image_id {:?}: start the query", current_image_id);
+        //debug!("image_id {:?}: start the query", current_image_id);
 
         let frustum_query = Query::ViewFrustum(frustum);
-        //todo! wait for reader before next query is sent.
         //send query
         debug!("image_id {:?}: Send query", current_image_id);
         client
@@ -78,49 +74,44 @@ pub async fn thread_2_send_frustum(
             match update {
                 PartialResult::DeleteNode(_) => warn!("Received unexpected DeleteNode message."),
                 PartialResult::UpdateNode(update) => {
+                    //debug!("Send Frustum Thread: image_id {:?}: Received UpdateNode message, sending points", current_image_id);
                     status
-                        .frustum_query_received_points
+                        .t2_send_frustum_thread_nr_received_points
                         .fetch_add(update.points.len() as u64, Ordering::Relaxed);
                     status
-                        .frustum_query_received_nodes
+                        .t2_send_frustum_thread_nr_received_nodes
                         .fetch_add(1, Ordering::Relaxed);
-                    //debug!("image_id {:?} Number of points read: {:?}", current_image_id, update.points.len());
-                    //debug!("image_id {:?}: Received UpdateNode message, sending points", current_image_id );
                     match point_data_tx.send(ImageIdAndVectorBuffer {
                         image_id: current_image_id,
                         vector_buffer: update.points,
                         image_complete: false,
                     }) {
-                        Ok(_) => {}
+                        Ok(_) => {
+                            //debug!("Send Frustum Thread: image_id {:?}: points sent", current_image_id);
+                        }
                         Err(error) => {
                             warn!("image_id {:?}: error sending points: {:?}", current_image_id, error);
                             return Ok(());
                         }
                     }
+                    //debug!("Send Frustum Thread: image_id {:?}: points sent fully done", current_image_id);
                 }
                 PartialResult::Complete => {
-                    debug!(
-                        "image_id {:?}: Received Complete message.",
-                        current_image_id
-                    );
                     let layout = PointLayout::default(); // empty layout
-                    debug!(
-                        "image_id {:?}: Received complete message, sending empty buffer",
-                        current_image_id
-                    );
+                    debug!("image_id {:?}: Received complete message, sending image complete buffer",current_image_id);
                     point_data_tx.send(ImageIdAndVectorBuffer {
                         image_id: current_image_id,
                         vector_buffer: VectorBuffer::new_from_layout(layout),
-                        image_complete: true, //todo change back
+                        image_complete: true,
                     })?;
                     break; //break as last points of frustum are received, due to channel properties order is guaranteed
                 }
             }
-        }
-        debug!("image_id {:?}: query done", current_image_id);
 
-        //todo: send data.
+        }
     }
+    debug!("Send Frustum Thread: Shutting down viewerClient");
+    shutdown_tx.send(()).ok();
     debug!("Send Frustum Thread: finished");
     Ok(())
 }

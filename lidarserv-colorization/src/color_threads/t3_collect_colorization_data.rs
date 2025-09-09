@@ -8,6 +8,7 @@ use std::sync::{mpsc, Arc};
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 use std::vec;
+use pasture_core::containers::BorrowedBuffer;
 use tokio::sync::broadcast::Receiver;
 use tokio_util::sync::CancellationToken;
 
@@ -56,6 +57,7 @@ pub(crate) fn thread_3_collect_colorization_data(
                         "collect_colorization_data_thread: received points for image with id: {:?}",
                         data.image_id
                     );
+                    status.t3_collect_colorization_data_thread_nr_received_points.fetch_add(data.vector_buffer.len() as u64, Ordering::Relaxed);
                     data
                 }
             }
@@ -69,13 +71,8 @@ pub(crate) fn thread_3_collect_colorization_data(
         debug!("collect_colorization_data_thread: received points");
         let image_data = match image_data_map.get(&image_id_and_vec_buff.image_id) {
             None => {
-                debug!(
-                    "collect_colorization_data_thread: image with id: {:?} not in hashmap",
-                    &image_id_and_vec_buff.image_id
-                );
-                return Err(anyhow::anyhow!(
-                    "collect_colorization_data_thread: image_id not found"
-                ));
+                debug!("collect_colorization_data_thread: image with id: {:?} not in hashmap",&image_id_and_vec_buff.image_id);
+                return Err(anyhow::anyhow!("collect_colorization_data_thread: image_id not found"));
                 //todo handle problem by using a queue pop vecbuff with cloud checking if image is ready else push again to the end.
             }
             Some(data) => data,
@@ -93,7 +90,7 @@ pub(crate) fn thread_3_collect_colorization_data(
         };
 
         //send colorization data to the colorization_data_tx channel
-        debug!("collect_colorization_data_thread: sending colorization data");
+        debug!("collect_colorization_data_thread: sending collect_colorization_data_thread data");
         colorization_data_tx.send(colorization_data).unwrap_or_else(|e| {
             debug!("collect_colorization_data_thread: error sending colorization data: {:?}", e);
         })
