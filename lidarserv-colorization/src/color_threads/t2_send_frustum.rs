@@ -38,7 +38,7 @@ pub async fn thread_2_send_frustum(
             debug!("Send Frustum Thread: Stop signal received");
             break;
         }
-        debug!("Send Frustum Thread: Waiting for new frustum to query");
+        //debug!("Send Frustum Thread: Waiting for new frustum to query");
         let image_id_and_frustum = match image_id_and_frustum_data_rx.recv_timeout(Duration::new(1,0)) {
             Ok(data) => {
                 status.t2_send_frustum_thread_current_image_id.store(data.image_id, Ordering::Relaxed);
