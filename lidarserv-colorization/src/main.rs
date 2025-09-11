@@ -178,7 +178,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let exit_tx5 = exit_tx.clone();
     let status5 = Arc::clone(&status);
     let args5 = args.clone();
-    let (colorized_data_tx, colorized_data_rx) = mpsc::channel();
+    let (colorized_data_tx,colorized_data_rx) = mpsc::channel();
 
     let join_colorization = {
         thread::spawn(move || {
@@ -208,6 +208,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let join_lidarserv_store = {
         thread::spawn(move || {
             //todo!("lidarserv store thread 5")
+            colorized_data_rx
             //exit_tx.send(()).ok()
         })
     };

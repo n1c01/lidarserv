@@ -40,7 +40,6 @@ pub struct Status {
 pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){//shutdown_rx: mpsc::Receiver<()>) {
     let mut buffer1: i64 = 0; // signed integers, because we use relaxed ordering for the atomic counters, so we could observe the increment of the counter that removes messages from the buffer before the one that inserts messages into the buffer.
     let mut buffer2: i64 = 0;
-    let mut all_stopped_prev = false;
 
     let stop_control_thread = stop_token.child_token();
     {
@@ -99,36 +98,6 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){//shutd
             "[⏵]"
         };
 
-        let mut all_stopped = paused || shutdown;
-        let stop_reason = if shutdown {
-            "shut down"
-        } else if paused {
-            "paused"
-        } else {
-            ""
-        };
-        let rx_part = if all_stopped && nr_received_images == 0 {
-            stop_reason.to_string()
-        } else {
-            all_stopped = false;
-            format!("{:3} msg/s", nr_received_images,)
-        };
-        let process_part = if all_stopped && buffer1 == 0 && nr_process_frustum_out == 0 {
-            stop_reason.to_string()
-        } else {
-            all_stopped = false;
-            format!(
-                "queue: {:2} msg | {:3} msg/s",
-                buffer1, nr_process_frustum_out,
-            )
-        };
-        let tx_part = if all_stopped && buffer2 == 0 && nr_tx_msg_query == 0 {
-            stop_reason.to_string()
-        } else {
-            all_stopped = false;
-            format!("queue: {:2} msg | {:3} msg/s", buffer2, nr_tx_msg_query)
-        };
-
         let mut thread_states = String::new();
         check_or_cross(& mut thread_states,
                        ros_thread_running,
@@ -167,29 +136,23 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){//shutd
             .expect("couldnt write status of managing_colorization_thread");
 
 
-        if !all_stopped || !all_stopped_prev {
-            println!(
-                "{}[{}{}]",
-                state_part,
-                style("Thread states: ").bold(),
-                thread_states,
-                /*
-                "{}[{} {}] [{} {}] [{} {}]",
-                state_part,
-                style("RX").bold(),
-                rx_part,
-                style("PROCESS").bold(),
-                process_part,
-                style("TX").bold(),
-                tx_part
+        println!(
+            "{}[{}{}]",
+            state_part,
+            style("Thread states: ").bold(),
+            thread_states,
+            /*
+            "{}[{} {}] [{} {}] [{} {}]",
+            state_part,
+            style("RX").bold(),
+            rx_part,
+            style("PROCESS").bold(),
+            process_part,
+            style("TX").bold(),
+            tx_part
 
-                 */
-            );
-        }
-        if all_stopped && shutdown {
-            break;
-        }
-        all_stopped_prev = all_stopped;
+             */
+        );
     }
 }
 

@@ -269,17 +269,13 @@ impl PointCloudColorizer {
             self.frustum.z_far,
         );
 
-        let view_projection_matrix: OMatrix<f64, Const<4>, U4> =
-            proj_frustum.as_matrix() * view_transform.to_matrix();
-        let view_projection_matrix_inv =
-            proj_frustum.inverse() * view_transform.inverse().to_matrix();
+        //let view_projection_matrix: OMatrix<f64, Const<4>, U4> = proj_frustum.as_matrix() * view_transform.to_matrix();
+        //let view_projection_matrix_inv = proj_frustum.inverse() * view_transform.inverse().to_matrix();
         //println!("view_projection_matrix: {:?}", view_projection_matrix);
 
-        let translation: OMatrix<f64, Const<4>, U4> =
-            OMatrix::new_translation(&Vector3::new(-1000., -1000., 0.));
-        let rotation: OMatrix<f64, Const<4>, U4> =
-            OMatrix::new_rotation_wrt_point(Vector3::new(0.1, 0.1, 0.1), Point3::new(0., 0., 0.));
-        let scaling: OMatrix<f64, Const<4>, U4> = OMatrix::new_scaling(0.5);
+        //let translation: OMatrix<f64, Const<4>, U4> = OMatrix::new_translation(&Vector3::new(-1000., -1000., 0.));
+        //let rotation: OMatrix<f64, Const<4>, U4> = OMatrix::new_rotation_wrt_point(Vector3::new(0.1, 0.1, 0.1), Point3::new(0., 0., 0.));
+        //let scaling: OMatrix<f64, Const<4>, U4> = OMatrix::new_scaling(0.5);
 
         let test_scale: OMatrix<f64, U4, Const<4>> = OMatrix::from_rows(&[
             RowVector4::new(
@@ -360,14 +356,7 @@ impl PointCloudColorizer {
 
         //println!("X: {:?}, Y: {:?}, Z: {:?}", x, y, z);
 
-        let saved_point = Point {
-            x,
-            y,
-            z,
-            intensity: 9,
-            color: Some(Color::new(60, 10, 100)),
-            ..Default::default()
-        };
+        //let saved_point = Point { x, y, z, intensity: 9, color: Some(Color::new(60, 10, 100)), ..Default::default() };
 
         /*
         if projected_point.z < 0. {
