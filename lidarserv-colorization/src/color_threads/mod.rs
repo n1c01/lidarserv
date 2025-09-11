@@ -3,7 +3,6 @@ use pasture_core::containers::{VectorBuffer};
 use std::fmt;
 use std::time::Duration;
 
-pub(crate) mod cross_thread_functionality;
 pub(crate) mod status;
 pub(crate) mod t0_ros;
 pub(crate) mod t1_processing_frustum;

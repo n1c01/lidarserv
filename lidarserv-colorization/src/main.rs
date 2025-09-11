@@ -21,7 +21,6 @@ use tokio_util::sync::CancellationToken;
 
 mod cli;
 mod color_threads;
-mod init_colorize;
 
 fn main() -> ExitCode {
     // arg parsing
