@@ -1,13 +1,13 @@
 use crate::cli::AppOptions;
 use crate::color_threads::status::Status;
 use crate::color_threads::t4_colorization::point_cloud_colorizer::PointCloudColorizer;
-use crate::color_threads::{t4_colorization::ColorizationData, ImageData, ImageIdAndVectorBuffer};
-use image::{DynamicImage, ImageReader};
+use crate::color_threads::{t4_colorization::ColorizationData};
+use image::{DynamicImage};
 use lidarserv_common::nalgebra::{Point3, Vector2, Vector3};
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use log::{debug, warn};
-use std::sync::{mpsc, Arc};
 use std::sync::atomic::Ordering;
+use std::sync::{mpsc, Arc};
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 

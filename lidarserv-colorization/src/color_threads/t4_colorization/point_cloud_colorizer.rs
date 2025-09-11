@@ -1,5 +1,4 @@
 use crate::color_threads::t4_colorization::ColorizationData;
-use crate::color_threads::ImageIdAndVectorBuffer;
 use image::imageops::FilterType;
 use image::{DynamicImage, GenericImageView, ImageReader, Pixel};
 use las::{Color, Point};
@@ -7,14 +6,11 @@ use lidarserv_common::nalgebra::{
     Const, Isometry3, OMatrix, Perspective3, Point3, RowVector4, Vector2, Vector3, U4,
 };
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
-use log::{debug, warn};
+use log::{warn};
 use pasture_core::containers::{
-    BorrowedBuffer, BorrowedBufferExt, BorrowedMutBuffer, BorrowedMutBufferExt, OwningBuffer,
-    VectorBuffer,
-};
+    BorrowedBuffer, BorrowedMutBuffer,
+    };
 use pasture_core::layout::attributes::{COLOR_RGB, POSITION_3D};
-use pasture_core::layout::PointType;
-use std::any::Any;
 use std::path::Path;
 
 /// The picture struct holds a view frustum and a corresponding dynamic image

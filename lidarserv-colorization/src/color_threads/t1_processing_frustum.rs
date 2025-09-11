@@ -1,22 +1,15 @@
 use crate::cli::AppOptions;
-use crate::color_threads::cross_thread_functionality::check_stop_lidarserv_colorization;
 use crate::color_threads::status::Status;
-use crate::color_threads::t0_ros::Command;
 use crate::color_threads::{ImageData, ImageIdAndFrustum};
-use anyhow::{anyhow, Error};
-use lidarserv_common::query::view_frustum::ViewFrustumQuery;
-use log::{debug, error, info, warn};
+use log::{debug, warn};
 use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::Duration;
-use tokio::sync::broadcast;
-use tokio::sync::broadcast::error::TryRecvError;
-use tokio::sync::broadcast::Receiver;
 use tokio_util::sync::CancellationToken;
 
 pub fn thread_1_process_frustum(
-    args: AppOptions,
+    _args: AppOptions, //todo! check if it can be removed completely
     stop_token: CancellationToken,
     image_data_rx: mpsc::Receiver<ImageData>,
     image_data_bypass_tx: mpsc::Sender<ImageData>,

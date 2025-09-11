@@ -7,7 +7,7 @@ use anyhow::anyhow;
 use anyhow::Result;
 use lidarserv_common::nalgebra::{Point3, Vector2};
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
-use log::{debug, info, trace, warn};
+use log::{debug, info};
 use pasture_core::nalgebra::Vector3;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{Receiver, Sender};

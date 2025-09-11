@@ -1,11 +1,9 @@
 use crate::cli::AppOptions;
-use crate::color_threads::cross_thread_functionality::check_stop_lidarserv_colorization;
 use crate::color_threads::status::Status;
 use crate::color_threads::{ImageIdAndFrustum, ImageIdAndVectorBuffer};
-use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use lidarserv_server::{
     index::query::Query,
-    net::client::viewer::{NodeUpdate, PartialResult, QueryConfig, ViewerClient},
+    net::client::viewer::{PartialResult, QueryConfig, ViewerClient},
 };
 use log::{debug, warn};
 use pasture_core::containers::{BorrowedBuffer, MakeBufferFromLayout, VectorBuffer};
@@ -14,7 +12,6 @@ use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
 use tokio::sync::broadcast;
-use tokio::sync::broadcast::Receiver;
 use tokio_util::sync::CancellationToken;
 
 pub async fn thread_2_send_frustum(

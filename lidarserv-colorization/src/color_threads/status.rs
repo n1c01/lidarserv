@@ -1,11 +1,8 @@
 use console::{style, Key};
 use log::info;
-use std::fmt::format;
-use std::ops::Add;
 use std::{
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
-        mpsc::{self, RecvTimeoutError},
         Arc,
     },
     thread,
@@ -20,27 +17,28 @@ pub struct Status {
     pub nr_received_images: AtomicU64, //Number of received image messages.
     pub nr_process_frustum_in: AtomicU64, // Number of received frustum queries.
     pub nr_process_frustum_out: AtomicU64, //Number of processed frustum queries.
-    pub nr_sent_queries: AtomicU64,    //Number of sent queries.
-    pub t2_send_frustum_thread_nr_received_nodes: AtomicU64, //Number of received nodes
-    pub ros_thread_running: AtomicBool,
-    pub process_frustum_thread_running: AtomicBool,
-    pub send_frustum_thread_running: AtomicBool,
-    pub collect_colorization_data_thread_running: AtomicBool,
-    pub managing_colorization_thread_running: AtomicBool,
+
+    pub t0_ros_thread_running: AtomicBool,
     pub t0_ros_current_image_id: AtomicU64,
+
+    pub t1_process_frustum_thread_running: AtomicBool,
     pub t1_process_frustum_thread_current_image_id: AtomicU64,
+
+    pub t2_send_frustum_thread_running: AtomicBool,
     pub t2_send_frustum_thread_current_image_id: AtomicU64,
     pub t2_send_frustum_thread_nr_received_points: AtomicU64, //Number of received points
+
+    pub t3_collect_colorization_data_thread_running: AtomicBool,
     pub t3_collect_colorization_data_thread_current_image_id: AtomicU64,
     pub t3_collect_colorization_data_thread_nr_received_points: AtomicU64,
     pub t3_collect_colorization_data_thread_nr_received_nodes: AtomicU64,
+
+    pub t4_managing_colorization_thread_running: AtomicBool,
     pub t4_managing_colorization_thread_current_image_id: AtomicU64,
+    pub t2_send_frustum_thread_nr_received_nodes: AtomicU64, //Number of received nodes
 }
 
-pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){//shutdown_rx: mpsc::Receiver<()>) {
-    let mut buffer1: i64 = 0; // signed integers, because we use relaxed ordering for the atomic counters, so we could observe the increment of the counter that removes messages from the buffer before the one that inserts messages into the buffer.
-    let mut buffer2: i64 = 0;
-
+pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){
     let stop_control_thread = stop_token.child_token();
     {
         let status = Arc::clone(&status);
@@ -50,24 +48,20 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){//shutd
     while !stop_token.is_cancelled() {
         thread::sleep(Duration::from_millis(500));
         //todo!(make output clearer for usecase)
-        let nr_received_images = status.nr_received_images.swap(0, Ordering::Relaxed);
-        let nr_process_frustum_in = status.nr_process_frustum_in.swap(0, Ordering::Relaxed);
-        let nr_process_frustum_out = status.nr_process_frustum_out.swap(0, Ordering::Relaxed);
-        let nr_tx_msg_query = status.nr_sent_queries.swap(0, Ordering::Relaxed);
         let paused = status.paused.load(Ordering::Relaxed);
         let shutdown = status.shutdown.load(Ordering::Relaxed);
 
-        let ros_thread_running = status.ros_thread_running.load(Ordering::Relaxed);
+        let ros_thread_running = status.t0_ros_thread_running.load(Ordering::Relaxed);
         let process_frustum_thread_running = status
-            .process_frustum_thread_running
+            .t1_process_frustum_thread_running
             .load(Ordering::Relaxed);
         let send_frustum_thread_running =
-            status.send_frustum_thread_running.load(Ordering::Relaxed);
+            status.t2_send_frustum_thread_running.load(Ordering::Relaxed);
         let collect_colorization_data_thread_running = status
-            .collect_colorization_data_thread_running
+            .t3_collect_colorization_data_thread_running
             .load(Ordering::Relaxed);
         let managing_colorization_thread_running = status
-            .managing_colorization_thread_running
+            .t4_managing_colorization_thread_running
             .load(Ordering::Relaxed);
 
         let t0_ros_current_image_id = Option::from(status.t0_ros_current_image_id.load(Ordering::Relaxed));
@@ -84,11 +78,6 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){//shutd
 
 
         let t4_managing_colorization_thread_current_image_id = Option::from(status.t4_managing_colorization_thread_current_image_id.load(Ordering::Relaxed));
-
-        buffer1 += nr_received_images as i64;
-        buffer1 -= nr_process_frustum_in as i64;
-        buffer2 += nr_process_frustum_out as i64;
-        buffer2 -= nr_tx_msg_query as i64;
 
         let state_part = if shutdown {
             "[⏹]"

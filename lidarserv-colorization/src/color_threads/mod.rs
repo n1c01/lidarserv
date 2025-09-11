@@ -1,5 +1,5 @@
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
-use pasture_core::containers::{BorrowedBuffer, VectorBuffer};
+use pasture_core::containers::{VectorBuffer};
 use std::fmt;
 use std::time::Duration;
 

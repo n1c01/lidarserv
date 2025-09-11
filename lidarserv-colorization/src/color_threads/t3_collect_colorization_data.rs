@@ -1,19 +1,16 @@
 use crate::cli::AppOptions;
-use crate::color_threads::cross_thread_functionality::check_stop_lidarserv_colorization;
 use crate::color_threads::status::Status;
 use crate::color_threads::{t4_colorization::ColorizationData, ImageData, ImageIdAndVectorBuffer};
-use log::{debug, error, warn};
-use std::collections::HashMap;
-use std::sync::{mpsc, Arc};
-use std::sync::atomic::Ordering;
-use std::time::Duration;
-use std::vec;
+use log::{debug, error};
 use pasture_core::containers::BorrowedBuffer;
-use tokio::sync::broadcast::Receiver;
+use std::collections::HashMap;
+use std::sync::atomic::Ordering;
+use std::sync::{mpsc, Arc};
+use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 
 pub(crate) fn thread_3_collect_colorization_data(
-    args: AppOptions,
+    _args: AppOptions, //todo! check if it can be removed completely
     stop_token: CancellationToken,
     points_rx: mpsc::Receiver<ImageIdAndVectorBuffer>,
     picture_data_rx: mpsc::Receiver<ImageData>,

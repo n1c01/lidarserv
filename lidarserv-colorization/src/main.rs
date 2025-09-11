@@ -4,10 +4,8 @@ use crate::color_threads::t1_processing_frustum::thread_1_process_frustum;
 use crate::color_threads::t2_send_frustum::thread_2_send_frustum;
 use crate::color_threads::t3_collect_colorization_data::thread_3_collect_colorization_data;
 use crate::color_threads::t4_colorization::t4_managing_colorization::thread_4_managing_colorization;
-use crate::color_threads::{t1_processing_frustum, ImageIdAndVectorBuffer};
-use crate::init_colorize::init_colorize;
 use anyhow::Result;
-use anyhow::{Context, Error};
+use anyhow::{Error};
 use clap::Parser;
 use cli::AppOptions;
 use log::{debug, error, info};
@@ -15,11 +13,10 @@ use rosrust::api::resolve::get_unused_args;
 use std::fmt::{Debug, Display};
 use std::process::ExitCode;
 use std::sync::atomic::Ordering;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{channel};
 use std::sync::{mpsc, Arc};
 use std::thread;
 use tokio::runtime::Runtime;
-use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
 
 mod cli;
@@ -81,9 +78,9 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let join_ros = {
         let args1 = args.clone();
         thread::spawn(move || {
-            status1.ros_thread_running.store(true, Ordering::Relaxed);
+            status1.t0_ros_thread_running.store(true, Ordering::Relaxed);
             thread_0_ros(args1, commands_rx, image_data_tx, status1.clone()).log_error();
-            status1.ros_thread_running.store(false, Ordering::Relaxed);
+            status1.t0_ros_thread_running.store(false, Ordering::Relaxed);
             debug!("ros_thread: sending exit message");
             exit_tx1.send(()).ok()
         })
@@ -100,7 +97,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let join_processing_frustum = {
         thread::spawn(move || {
             status2
-                .process_frustum_thread_running
+                .t1_process_frustum_thread_running
                 .store(true, Ordering::Relaxed);
             thread_1_process_frustum(
                 args2,
@@ -112,7 +109,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
             )
             .log_error();
             status2
-                .process_frustum_thread_running
+                .t1_process_frustum_thread_running
                 .store(false, Ordering::Relaxed);
             debug!("process_frustum_thread: sending exit message");
             exit_tx2.send(()).ok()
@@ -128,7 +125,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
         thread::spawn(move || {
             let rt = Runtime::new().unwrap();
             status3
-                .send_frustum_thread_running
+                .t2_send_frustum_thread_running
                 .store(true, Ordering::Relaxed);
             rt.block_on(thread_2_send_frustum(
                 args3,
@@ -139,7 +136,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
             ))
             .log_error();
             status3
-                .send_frustum_thread_running
+                .t2_send_frustum_thread_running
                 .store(false, Ordering::Relaxed);
             debug!("send_frustum_thread: sending exit message");
             exit_tx3.send(()).ok()
@@ -154,7 +151,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let join_lidarserv_answer = {
         thread::spawn(move || {
             status4
-                .collect_colorization_data_thread_running
+                .t3_collect_colorization_data_thread_running
                 .store(true, Ordering::Relaxed);
             thread_3_collect_colorization_data(
                 args4,
@@ -166,7 +163,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
             )
             .log_error();
             status4
-                .collect_colorization_data_thread_running
+                .t3_collect_colorization_data_thread_running
                 .store(false, Ordering::Relaxed);
 
             debug!("collect_colorization_data_thread: sending exit message");
@@ -183,7 +180,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let join_colorization = {
         thread::spawn(move || {
             status5
-                .managing_colorization_thread_running
+                .t4_managing_colorization_thread_running
                 .store(true, Ordering::Relaxed);
             //Processing colorization Thread, that colorizes the points
             debug!("managing_colorization_thread: start thread");
@@ -196,7 +193,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
             )
             .log_error();
             status5
-                .managing_colorization_thread_running
+                .t4_managing_colorization_thread_running
                 .store(false, Ordering::Relaxed);
             debug!("managing_colorization_thread: sending exit message");
             exit_tx5.send(()).ok()
