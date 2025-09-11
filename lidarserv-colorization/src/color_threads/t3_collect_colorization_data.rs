@@ -91,7 +91,10 @@ pub(crate) fn thread_3_collect_colorization_data(
         };
 
         //send colorization data to the colorization_data_tx channel
-        debug!("collect_colorization_data_thread: sending collect_colorization_data_thread data");
+        debug!("collect_colorization_data_thread: sending data: image_id: {:?}, Vectorbuffer size: {:?}",
+            colorization_data.image_data.image_id_and_frustum.image_id,
+            colorization_data.point_data.len()
+        );
         colorization_data_tx.send(colorization_data).unwrap_or_else(|e| {
             debug!("collect_colorization_data_thread: error sending colorization data: {:?}", e);
         })

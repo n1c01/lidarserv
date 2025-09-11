@@ -156,7 +156,7 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){//shutd
                        "t3_collect_p",
                        t3_collect_colorization_data_thread_current_image_id,
                        t3_collect_colorization_data_thread_nr_received_points,
-                       None)
+                       t3_collect_colorization_data_thread_nr_received_nodes)
             .expect("couldnt write status of collect_colorization_data_thread");
         check_or_cross(& mut thread_states,
                        managing_colorization_thread_running,
