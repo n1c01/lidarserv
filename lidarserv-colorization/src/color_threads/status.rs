@@ -126,7 +126,7 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){
 
 
         println!(
-            "{}[{}{}]",
+            "{}[{}{}]\n",
             state_part,
             style("Thread states: ").bold(),
             thread_states,

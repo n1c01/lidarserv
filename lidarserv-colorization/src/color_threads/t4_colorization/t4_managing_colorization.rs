@@ -12,10 +12,10 @@ use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 
 pub(crate) fn thread_4_managing_colorization(
-    args: AppOptions,
+    _args: AppOptions, //todo! check if it can be removed
     stop_token: CancellationToken,
     colorization_data_rx: mpsc::Receiver<ColorizationData>,
-    colorized_points: mpsc::Sender<ColorizationData>,
+    _colorized_points: mpsc::Sender<ColorizationData>,
     status: Arc<Status>,
 ) -> anyhow::Result<()> {
     loop {
@@ -24,7 +24,7 @@ pub(crate) fn thread_4_managing_colorization(
             debug!("thread_4_managing_colorization: Stop signal received");
             break;
         }
-        let mut dynamic_image = DynamicImage::new_rgb8(100, 100);
+        let dynamic_image = DynamicImage::new_rgb8(100, 100);
 
         let colorization_data = match colorization_data_rx.recv_timeout(Duration::from_secs(1)) {
             Ok(data) => {
@@ -54,7 +54,7 @@ pub(crate) fn thread_4_managing_colorization(
                     -0.3385713522295046,
                 ),
                 camera_up: Vector3::new(0.0, 0.0, 1.0),
-                fov_y: 0.7853981633974483,
+                fov_y: 0.7843981633974486,
                 z_near: 0.2985705572917801,
                 z_far: 298570.5573180077,
                 window_size: Vector2::new(500.0, 500.0),
@@ -64,7 +64,7 @@ pub(crate) fn thread_4_managing_colorization(
         };
         debug!("thread_4_managing_colorization: colorization started");
         match point_cloud_colorizer.colorize(colorization_data){
-            Ok(data) => {
+            Ok(_data) => {
                 debug!("thread_4_managing_colorization: colorization done")
                 //todo send colorized data
             }

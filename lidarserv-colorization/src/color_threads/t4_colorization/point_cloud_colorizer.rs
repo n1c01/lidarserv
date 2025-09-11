@@ -1,6 +1,5 @@
 use crate::color_threads::t4_colorization::ColorizationData;
-use image::imageops::FilterType;
-use image::{DynamicImage, GenericImageView, ImageReader, Pixel};
+use image::{DynamicImage, GenericImageView, Pixel};
 use las::{Color, Point};
 use lidarserv_common::nalgebra::{
     Const, Isometry3, OMatrix, Perspective3, Point3, RowVector4, Vector2, Vector3, U4,
@@ -11,7 +10,6 @@ use pasture_core::containers::{
     BorrowedBuffer, BorrowedMutBuffer,
     };
 use pasture_core::layout::attributes::{COLOR_RGB, POSITION_3D};
-use std::path::Path;
 
 /// The picture struct holds a view frustum and a corresponding dynamic image
 pub struct PointCloudColorizer {
@@ -28,8 +26,9 @@ impl PointCloudColorizer {
     /// Colorizes a point cloud (cloud_reader) with the picture (self) and outputs it (cloud_writer)
     pub fn colorize(
         &self,
-        mut colorization_data: ColorizationData,
+        colorization_data: ColorizationData,
     ) -> Result<&'static str, &'static str> {
+
         //Get the projection matrix to transform the points to the picture frustum
         //debug!("PointCloudColorizer: Getting projection matrix");
         let view_projection = self.get_projection();
@@ -265,13 +264,13 @@ impl PointCloudColorizer {
             self.frustum.z_far,
         );
 
-        //let view_projection_matrix: OMatrix<f64, Const<4>, U4> = proj_frustum.as_matrix() * view_transform.to_matrix();
-        //let view_projection_matrix_inv = proj_frustum.inverse() * view_transform.inverse().to_matrix();
+        let _view_projection_matrix: OMatrix<f64, Const<4>, U4> = proj_frustum.as_matrix() * view_transform.to_matrix();
+        let _view_projection_matrix_inv = proj_frustum.inverse() * view_transform.inverse().to_matrix();
         //println!("view_projection_matrix: {:?}", view_projection_matrix);
 
-        //let translation: OMatrix<f64, Const<4>, U4> = OMatrix::new_translation(&Vector3::new(-1000., -1000., 0.));
-        //let rotation: OMatrix<f64, Const<4>, U4> = OMatrix::new_rotation_wrt_point(Vector3::new(0.1, 0.1, 0.1), Point3::new(0., 0., 0.));
-        //let scaling: OMatrix<f64, Const<4>, U4> = OMatrix::new_scaling(0.5);
+        let _translation: OMatrix<f64, Const<4>, U4> = OMatrix::new_translation(&Vector3::new(-1000., -1000., 0.));
+        let _rotation: OMatrix<f64, Const<4>, U4> = OMatrix::new_rotation_wrt_point(Vector3::new(0.1, 0.1, 0.1), Point3::new(0., 0., 0.));
+        let _scaling: OMatrix<f64, Const<4>, U4> = OMatrix::new_scaling(0.5);
 
         let test_scale: OMatrix<f64, U4, Const<4>> = OMatrix::from_rows(&[
             RowVector4::new(
@@ -346,9 +345,9 @@ impl PointCloudColorizer {
             view_projection.transform_point(&Point3::new(point.x, point.y, point.z));
 
         //xyz values cut at extreme high or low values
-        let x = projected_point.x.min(100000.).max(-100000.);
-        let y = projected_point.y.min(100000.).max(-100000.);
-        let z = projected_point.z.min(100000.).max(-100000.);
+        let _x = projected_point.x.min(100000.).max(-100000.);
+        let _y = projected_point.y.min(100000.).max(-100000.);
+        let _z = projected_point.z.min(100000.).max(-100000.);
 
         //println!("X: {:?}, Y: {:?}, Z: {:?}", x, y, z);
 
@@ -436,15 +435,7 @@ impl PointCloudColorizer {
          */
     }
 
-    /// Creates a picture struct from a path to a picture
-    /// # attributes
-    /// - path: The path to the picture
-    /// # returns
-    /// The picture struct
-    /// # errors
-    /// - "Failed to read image"
-    /// - "Failed to decode image"
-
+    /*
     pub fn example_picture(path: &Path) -> PointCloudColorizer {
         let window_size = Vector2::new(1000., 1000.);
 
@@ -473,4 +464,5 @@ impl PointCloudColorizer {
             dynamic_image,
         }
     }
+    */
 }
