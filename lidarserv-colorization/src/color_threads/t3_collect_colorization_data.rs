@@ -23,9 +23,15 @@ pub(crate) fn thread_3_collect_colorization_data(
     let mut image_data_counter = 0;
     let mut node_data_counter = 0;
     let mut node_complete_message_counter = 0;
+    let mut received_points_per_image = HashMap::new();
     loop {
-        debug!("collect_colorization_data_thread: \nloop count: {:?}, \nrecv image count: {:?},\nrecv node complete count: {:?}, \nrecv node count: {:?}",
-            counter,image_data_counter,node_complete_message_counter, node_data_counter);
+        debug!("collect_colorization_data_thread: \nloop count: {:?},\
+         \nrecv image count: {:?},\
+         \nrecv node complete count: {:?}, \
+         \nrecv node count: {:?}\
+         \nnode count per image: {:?}\
+         \n",
+            counter,image_data_counter,node_complete_message_counter, node_data_counter, received_points_per_image);
         counter += 1;
         //handle stop signal
         if stop_token.is_cancelled() {
@@ -66,6 +72,12 @@ pub(crate) fn thread_3_collect_colorization_data(
                     status.t3_collect_colorization_data_thread_nr_received_points.fetch_add(data.vector_buffer.len() as u64, Ordering::Relaxed);
                     status.t3_collect_colorization_data_thread_nr_received_nodes.fetch_add(1, Ordering::Relaxed);
                     node_data_counter += 1;
+                    let received_points = received_points_per_image.get(&data.image_id);
+                    if received_points.is_some() {
+                        received_points_per_image.insert(data.image_id, received_points.unwrap() + data.vector_buffer.len() as u64);
+                    } else {
+                        received_points_per_image.insert(data.image_id, data.vector_buffer.len() as u64);
+                    }
                     data
                 }
             }
