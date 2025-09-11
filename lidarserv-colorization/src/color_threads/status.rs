@@ -11,7 +11,7 @@ use std::{
     thread,
     time::Duration,
 };
-
+use tokio_util::sync::CancellationToken;
 /// Holds status information printed regularly.
 #[derive(Debug, Default)]
 pub struct Status {
@@ -37,17 +37,19 @@ pub struct Status {
     pub t4_managing_colorization_thread_current_image_id: AtomicU64,
 }
 
-pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
+pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){//shutdown_rx: mpsc::Receiver<()>) {
     let mut buffer1: i64 = 0; // signed integers, because we use relaxed ordering for the atomic counters, so we could observe the increment of the counter that removes messages from the buffer before the one that inserts messages into the buffer.
     let mut buffer2: i64 = 0;
     let mut all_stopped_prev = false;
 
+    let stop_control_thread = stop_token.child_token();
     {
         let status = Arc::clone(&status);
-        thread::spawn(move || control_thread(status));
+        thread::spawn(move || control_thread(status,stop_control_thread));
     }
 
-    while let Err(RecvTimeoutError::Timeout) = shutdown_rx.recv_timeout(Duration::from_secs(1)) {
+    while !stop_token.is_cancelled() {
+        thread::sleep(Duration::from_millis(500));
         //todo!(make output clearer for usecase)
         let nr_received_images = status.nr_received_images.swap(0, Ordering::Relaxed);
         let nr_process_frustum_in = status.nr_process_frustum_in.swap(0, Ordering::Relaxed);
@@ -191,7 +193,7 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
     }
 }
 
-pub fn control_thread(status: Arc<Status>) {
+pub fn control_thread(status: Arc<Status>,stop_token:CancellationToken) {
     let term = console::Term::stdout();
     if !term.features().is_attended() {
         return;
@@ -199,6 +201,7 @@ pub fn control_thread(status: Arc<Status>) {
     info!("Press space to pause / unpause.");
 
     loop {
+        if stop_token.is_cancelled() {break;}
         match term.read_key() {
             Ok(Key::Char(' ')) => {
                 let paused = !status.paused.fetch_not(Ordering::Relaxed);
@@ -225,6 +228,8 @@ fn check_or_cross(thread_states: &mut String,
 ) -> anyhow::Result<()> {
     const CHECK: &str = "✓";
     const CROSS: &str = "✗";
+    const MAX_THREAD_NAME_LENGTH: usize = 15;
+
     thread_states.push_str("\n");
     thread_states.push_str(
         &style(if thread_running {
@@ -240,8 +245,8 @@ fn check_or_cross(thread_states: &mut String,
             .to_string());
     thread_states.push_str(&style(thread_name).bold().to_string());
     thread_states.push_str(":");
-    if thread_name.len() < 10{
-        thread_states.push_str(&" ".repeat(15 - thread_name.len()));
+    if thread_name.len() < MAX_THREAD_NAME_LENGTH{
+        thread_states.push_str(&" ".repeat(MAX_THREAD_NAME_LENGTH + 1 - thread_name.len()));
     }
     if thread_image_id.is_some() {
         thread_states.push_str("| image ID: ");

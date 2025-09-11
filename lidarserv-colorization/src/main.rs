@@ -52,8 +52,8 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let child_token3 = stop_source.child_token();
     let child_token4 = stop_source.child_token();
     let child_token5 = stop_source.child_token();
-
-    let (stop_status_tx, stop_status_rx) = channel();
+    let stop_source_status = stop_source.child_token();
+    let stop_token_status = stop_source_status.clone();
 
     let (exit_tx, exit_rx) = channel();
     {
@@ -216,7 +216,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let join_status = {
         let status = Arc::clone(&status);
         thread::spawn(move || {
-            status_thread(status, stop_status_rx);
+            status_thread(status, stop_token_status);
         })
     };
 
@@ -255,7 +255,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
 
     //stop status Thread
     debug!("stopping status thread");
-    stop_status_tx.send(()).ok();
+    stop_source_status.cancel();
     debug!("joining thread status");
     join_status.join().unwrap();
 
