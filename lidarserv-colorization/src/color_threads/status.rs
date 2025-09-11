@@ -33,6 +33,7 @@ pub struct Status {
     pub t2_send_frustum_thread_nr_received_points: AtomicU64, //Number of received points
     pub t3_collect_colorization_data_thread_current_image_id: AtomicU64,
     pub t3_collect_colorization_data_thread_nr_received_points: AtomicU64,
+    pub t3_collect_colorization_data_thread_nr_received_nodes: AtomicU64,
     pub t4_managing_colorization_thread_current_image_id: AtomicU64,
 }
 
@@ -78,6 +79,8 @@ pub fn status_thread(status: Arc<Status>, shutdown_rx: mpsc::Receiver<()>) {
 
         let t3_collect_colorization_data_thread_current_image_id = Option::from(status.t3_collect_colorization_data_thread_current_image_id.load(Ordering::Relaxed));
         let t3_collect_colorization_data_thread_nr_received_points = Option::from(status.t3_collect_colorization_data_thread_nr_received_points.load(Ordering::Relaxed));
+        let t3_collect_colorization_data_thread_nr_received_nodes = Option::from(status.t3_collect_colorization_data_thread_nr_received_nodes.load(Ordering::Relaxed));
+
 
         let t4_managing_colorization_thread_current_image_id = Option::from(status.t4_managing_colorization_thread_current_image_id.load(Ordering::Relaxed));
 
@@ -237,6 +240,9 @@ fn check_or_cross(thread_states: &mut String,
             .to_string());
     thread_states.push_str(&style(thread_name).bold().to_string());
     thread_states.push_str(":");
+    if thread_name.len() < 10{
+        thread_states.push_str(&" ".repeat(15 - thread_name.len()));
+    }
     if thread_image_id.is_some() {
         thread_states.push_str("| image ID: ");
         thread_states.push_str(&thread_image_id.unwrap().to_string());

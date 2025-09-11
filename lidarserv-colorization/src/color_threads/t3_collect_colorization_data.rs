@@ -58,6 +58,7 @@ pub(crate) fn thread_3_collect_colorization_data(
                         data.image_id
                     );
                     status.t3_collect_colorization_data_thread_nr_received_points.fetch_add(data.vector_buffer.len() as u64, Ordering::Relaxed);
+                    status.t3_collect_colorization_data_thread_nr_received_nodes.fetch_add(1, Ordering::Relaxed);
                     data
                 }
             }
@@ -75,7 +76,7 @@ pub(crate) fn thread_3_collect_colorization_data(
                 return Err(anyhow::anyhow!("collect_colorization_data_thread: image_id not found"));
                 //todo handle problem by using a queue pop vecbuff with cloud checking if image is ready else push again to the end.
             }
-            Some(data) => data,
+            Some(data) => data ,
         };
 
         //debug!("collect_colorization_data_thread: state of hashmap {:?}",image_data_map );
