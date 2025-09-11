@@ -22,7 +22,14 @@ pub(crate) fn thread_3_collect_colorization_data(
 ) -> anyhow::Result<()> {
     let mut image_data_map: HashMap<u64, ImageData> = HashMap::new();
 
+    let mut counter = 0;
+    let mut image_data_counter = 0;
+    let mut node_data_counter = 0;
+    let mut node_complete_message_counter = 0;
     loop {
+        debug!("collect_colorization_data_thread: \nloop count: {:?}, \nrecv image count: {:?},\nrecv node complete count: {:?}, \nrecv node count: {:?}",
+            counter,image_data_counter,node_complete_message_counter, node_data_counter);
+        counter += 1;
         //handle stop signal
         if stop_token.is_cancelled() {
             debug!("collect_colorization_data_thread: stop signal received");
@@ -36,6 +43,7 @@ pub(crate) fn thread_3_collect_colorization_data(
                 //safe picture data for processing
                 status.t3_collect_colorization_data_thread_current_image_id.store(data.image_id_and_frustum.image_id,Ordering::Relaxed);
                 safe_image_to_hashmap(data, &mut image_data_map);
+                image_data_counter+=1;
             }
             Err(_) => { /*Timeout therefore nothing happens here*/ }
         };
@@ -51,6 +59,7 @@ pub(crate) fn thread_3_collect_colorization_data(
                         data.image_id
                     );
                     image_data_map.remove(&data.image_id);
+                    node_complete_message_counter += 1;
                     continue;
                 } else {
                     debug!(
@@ -59,6 +68,7 @@ pub(crate) fn thread_3_collect_colorization_data(
                     );
                     status.t3_collect_colorization_data_thread_nr_received_points.fetch_add(data.vector_buffer.len() as u64, Ordering::Relaxed);
                     status.t3_collect_colorization_data_thread_nr_received_nodes.fetch_add(1, Ordering::Relaxed);
+                    node_data_counter += 1;
                     data
                 }
             }

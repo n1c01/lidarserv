@@ -35,7 +35,7 @@ impl PointCloudColorizer {
         mut colorization_data: ColorizationData,
     ) -> Result<&'static str, &'static str> {
         //Get the projection matrix to transform the points to the picture frustum
-        debug!("PointCloudColorizer: Getting projection matrix");
+        //debug!("PointCloudColorizer: Getting projection matrix");
         let view_projection = self.get_projection();
 
         //Iterate over pointcloud (colorize each point)
@@ -273,7 +273,7 @@ impl PointCloudColorizer {
             proj_frustum.as_matrix() * view_transform.to_matrix();
         let view_projection_matrix_inv =
             proj_frustum.inverse() * view_transform.inverse().to_matrix();
-        println!("view_projection_matrix: {:?}", view_projection_matrix);
+        //println!("view_projection_matrix: {:?}", view_projection_matrix);
 
         let translation: OMatrix<f64, Const<4>, U4> =
             OMatrix::new_translation(&Vector3::new(-1000., -1000., 0.));
@@ -318,7 +318,7 @@ impl PointCloudColorizer {
             Vector4::new(0.46413343903574611, -0.090550228431698312, 0.88112473969343208, -58.819855654855907 ),
             Vector4::new(0., 0., 0., 1.)]);
          */
-        println!("test_scale: {:?}", test_scale);
+        //println!("test_scale: {:?}", test_scale);
 
         //Holzkirchen_DSC02437 matrix:
         // -0.083455190734908813 -0.99480626956417306 -0.05827278245644181 6.2100728800843541
