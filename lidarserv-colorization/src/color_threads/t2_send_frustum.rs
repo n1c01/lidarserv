@@ -25,9 +25,10 @@ pub async fn thread_2_send_frustum(
     debug!("Send Frustum Thread: Started");
     // connect to viewerClient
     let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
-    let mut client = ViewerClient::connect((args.host.as_str(), args.port), &mut shutdown_rx).await?;
     //loop to wait for new frustums to query.
     loop {
+        //todo! ask Tobias.
+        let mut client = ViewerClient::connect((args.host.as_str(), args.port), &mut shutdown_rx).await?;
         //handle stop signal
         if stop_token.is_cancelled() {
             debug!("Send Frustum Thread: Stop signal received");
@@ -101,10 +102,10 @@ pub async fn thread_2_send_frustum(
                         vector_buffer: VectorBuffer::new_from_layout(layout),
                         image_complete: true,
                     })?;
+                    debug!("image_id {:?}: image complete buffer sent", current_image_id);
                     break; //break as last points of frustum are received, due to channel properties order is guaranteed
                 }
             }
-
         }
     }
     debug!("Send Frustum Thread: Shutting down viewerClient");
