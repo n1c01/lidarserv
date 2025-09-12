@@ -2,9 +2,7 @@ use crate::cli::AppOptions;
 use crate::color_threads::status::Status;
 use crate::color_threads::t4_colorization::point_cloud_colorizer::PointCloudColorizer;
 use crate::color_threads::{t4_colorization::ColorizationData};
-use image::{DynamicImage};
-use lidarserv_common::nalgebra::{Point3, Vector2, Vector3};
-use lidarserv_common::query::view_frustum::ViewFrustumQuery;
+use image::{DynamicImage, RgbaImage};
 use log::{debug, warn};
 use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc};
@@ -24,7 +22,6 @@ pub(crate) fn thread_4_managing_colorization(
             debug!("thread_4_managing_colorization: Stop signal received");
             break;
         }
-        let dynamic_image = DynamicImage::new_rgb8(100, 100);
 
         let colorization_data = match colorization_data_rx.recv_timeout(Duration::from_secs(1)) {
             Ok(data) => {
@@ -45,34 +42,31 @@ pub(crate) fn thread_4_managing_colorization(
 
         let point_cloud_colorizer = PointCloudColorizer {
             //todo use real colorizer
-            frustum: ViewFrustumQuery {
-                //example frustum todo: add real frustum (positional data)
-                camera_pos: Point3::new(-54.40324866531016, 2.3269014261665073, 10.108743731819478),
-                camera_dir: Vector3::new(
-                    -0.8632547306347013,
-                    -0.374380434165962,
-                    -0.3385713522295046,
-                ),
-                camera_up: Vector3::new(0.0, 0.0, 1.0),
-                fov_y: 0.7843981633974486,
-                z_near: 0.2985705572917801,
-                z_far: 298570.5573180077,
-                window_size: Vector2::new(500.0, 500.0),
-                max_distance: 10.0,
-            },
-            dynamic_image,
+            frustum: colorization_data.image_data.image_id_and_frustum.frustum,
+            dynamic_image: vec_to_dynamic_image_raw(colorization_data.image_data.image,
+                                                    colorization_data.image_data.width,
+                                                    colorization_data.image_data.height),
         };
         debug!("thread_4_managing_colorization: colorization started");
-        match point_cloud_colorizer.colorize(colorization_data){
-            Ok(_data) => {
-                debug!("thread_4_managing_colorization: colorization done")
-                //todo send colorized data
+        let colorized_points = match point_cloud_colorizer.colorize(colorization_data.point_data){
+            Ok(data) => {
+                debug!("thread_4_managing_colorization: colorization done");
+                data
             }
             Err(error) => {
                 debug!("thread_4_managing_colorization: colorization failed, with error {:?}", error);
                 return Ok(());
             }
-        }
+        };
+        debug!("point data, after colorization: {:?}",colorized_points);
     }
     Ok(())
+}
+
+
+fn vec_to_dynamic_image_raw(pixels: Vec<u8>, width: u32, height: u32) -> DynamicImage {
+    // Assuming RGBA8 pixel format (4 channels per pixel)
+    let img = RgbaImage::from_raw(width, height, pixels)
+        .expect("Invalid buffer length for given dimensions");
+    DynamicImage::ImageRgba8(img)
 }

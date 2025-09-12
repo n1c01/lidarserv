@@ -1,4 +1,3 @@
-use crate::color_threads::t4_colorization::ColorizationData;
 use image::{DynamicImage, GenericImageView, Pixel};
 use las::{Color, Point};
 use lidarserv_common::nalgebra::{
@@ -6,9 +5,7 @@ use lidarserv_common::nalgebra::{
 };
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use log::{warn};
-use pasture_core::containers::{
-    BorrowedBuffer, BorrowedMutBuffer,
-    };
+use pasture_core::containers::{BorrowedBuffer, BorrowedMutBuffer, VectorBuffer};
 use pasture_core::layout::attributes::{COLOR_RGB, POSITION_3D};
 
 /// The picture struct holds a view frustum and a corresponding dynamic image
@@ -26,15 +23,14 @@ impl PointCloudColorizer {
     /// Colorizes a point cloud (cloud_reader) with the picture (self) and outputs it (cloud_writer)
     pub fn colorize(
         &self,
-        colorization_data: ColorizationData,
-    ) -> Result<&'static str, &'static str> {
+        mut vector_buffer: VectorBuffer,
+    ) -> Result<VectorBuffer, &'static str> {
 
         //Get the projection matrix to transform the points to the picture frustum
         //debug!("PointCloudColorizer: Getting projection matrix");
         let view_projection = self.get_projection();
 
         //Iterate over pointcloud (colorize each point)
-        let mut vector_buffer = colorization_data.point_data;
         if !vector_buffer.point_layout().has_attribute(&POSITION_3D) {
             return Err("Pointcloud does not have a position attribute");
         } else if !vector_buffer.point_layout().has_attribute(&COLOR_RGB) {
@@ -46,8 +42,6 @@ impl PointCloudColorizer {
         for i in 0..vector_buffer.len() {
             BorrowedBuffer::get_attribute(&vector_buffer, &POSITION_3D, i, &mut position);
             BorrowedBuffer::get_attribute(&vector_buffer, &COLOR_RGB, i, &mut color);
-            //vector_buffer.get_attribute(&POSITION_3D,i,position);
-            //vector_buffer.get_attribute(&COLOR_RGB,i,color);
             let point = Point {
                 x: position[0] as f64,
                 y: position[1] as f64,
@@ -65,19 +59,7 @@ impl PointCloudColorizer {
                 vector_buffer.set_attribute(&COLOR_RGB, i, &color);
             }
         }
-
-        /*
-        //let mut position = vector_buffer.view_attribute_mut::<Vector3<f64>>(&POSITION_3D);
-        //let mut color = vector_buffer.view_attribute_mut::<Vector3<u16>>(&COLOR_RGB);
-        //let position_color = position.iter_mut().zip(color.iter_mut());
-        let mut position = vector_buffer.view_attribute::<Vector3<f64>>(&POSITION_3D);
-        let mut color = vector_buffer.view_attribute_mut::<Vector3<u16>>(&COLOR_RGB);
-
-        //position.into_iter().for_each(|position,color| {
-        position.into_iter().for_each(|position| {
-        */
-
-        Ok("Done")
+        Ok(vector_buffer)
     }
 
     fn process_point(

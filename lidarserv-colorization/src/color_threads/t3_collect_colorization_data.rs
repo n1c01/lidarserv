@@ -34,7 +34,7 @@ pub(crate) fn thread_3_collect_colorization_data(
          \n",
             counter,image_data_counter,query_complete_message_counter, node_data_counter, received_points_per_image);
         counter += 1;
-         
+
         //handle stop signal
         if stop_token.is_cancelled() {
             debug!("collect_colorization_data_thread: stop signal received");
@@ -54,7 +54,6 @@ pub(crate) fn thread_3_collect_colorization_data(
         };
 
         //receive points from the points_rx channel
-        //debug!("collect_colorization_data_thread: waiting for points");
         let image_id_and_vec_buff = match points_rx.recv_timeout(Duration::new(1, 0)) {
             Ok(data) => {
                 if data.image_complete {
@@ -85,7 +84,6 @@ pub(crate) fn thread_3_collect_colorization_data(
                 }
             }
             Err(_) => {
-                //debug!("collect_colorization_data_thread: timeout (point data)");
                 continue;
             }
         };
@@ -117,9 +115,14 @@ pub(crate) fn thread_3_collect_colorization_data(
             colorization_data.image_data.image_id_and_frustum.image_id,
             colorization_data.point_data.len()
         );
-        colorization_data_tx.send(colorization_data).unwrap_or_else(|e| {
-            debug!("collect_colorization_data_thread: error sending colorization data: {:?}", e);
-        })
+        match colorization_data_tx.send(colorization_data) {
+            Ok(_) => {
+
+            }
+            Err(e) => {
+                debug!("collect_colorization_data_thread: error sending colorization data: {:?}", e);
+            }
+        };
 
     }
 
