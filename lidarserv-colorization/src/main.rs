@@ -42,14 +42,14 @@ fn run(args: AppOptions) -> Result<(), Error> {
     //install the signal handler
     //preparing transmitters and receivers for stoping the program when Strg+c is pressed
 
-    let stop_source = CancellationToken::new();
+    let stop_source_status = CancellationToken::new();
+    let stop_token_status = stop_source_status.clone();
+    let stop_source = stop_source_status.child_token();
     let stop_source2 = stop_source.clone();
     let child_token2 = stop_source.child_token();
     let child_token3 = stop_source.child_token();
     let child_token4 = stop_source.child_token();
     let child_token5 = stop_source.child_token();
-    let stop_source_status = stop_source.child_token();
-    let stop_token_status = stop_source_status.clone();
 
     let (exit_tx, exit_rx) = channel();
     {
