@@ -29,12 +29,12 @@ pub(crate) fn thread_3_collect_colorization_data(
         debug!("collect_colorization_data_thread: \nloop count: {:?},\
          \nrecv image count: {:?},\
          \nrecv node complete count: {:?}, \
-         \nimage ids of complete nodes{:?}, \
          \nrecv node count: {:?},\
          \nnode count per image: {:?},\
          \n",
-            counter,image_data_counter,query_complete_message_counter,images_ids_of_complete_queries, node_data_counter, received_points_per_image);
+            counter,image_data_counter,query_complete_message_counter, node_data_counter, received_points_per_image);
         counter += 1;
+         
         //handle stop signal
         if stop_token.is_cancelled() {
             debug!("collect_colorization_data_thread: stop signal received");

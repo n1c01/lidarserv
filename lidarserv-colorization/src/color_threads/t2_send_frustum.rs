@@ -53,7 +53,7 @@ pub async fn thread_2_send_frustum(
 
         let frustum_query = Query::ViewFrustum(frustum);
         //send query
-        debug!("image_id {:?}: Send query: {:?}", current_image_id, frustum_query);
+        //debug!("image_id {:?}: Send query: {:?}", current_image_id, frustum_query);
         client
             .write
             .query_oneshot( //todo! change to query for permanant updates

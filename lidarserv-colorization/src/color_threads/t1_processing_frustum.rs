@@ -47,10 +47,7 @@ pub fn thread_1_process_frustum(
         thread::sleep(Duration::from_secs(3));
 
         status.nr_process_frustum_in.fetch_add(1, Ordering::Relaxed);
-        debug!(
-            "image_id: {:?} \nThe frustum {:?}",
-            image_data.image_id_and_frustum.image_id, image_data.image_id_and_frustum.frustum
-        );
+        //debug!("image_id: {:?} \nThe frustum {:?}",image_data.image_id_and_frustum.image_id, image_data.image_id_and_frustum.frustum);
         frustum_data_tx.send(image_data.image_id_and_frustum).ok(); //sending image to lidarserv frustum query thread
         status
             .nr_process_frustum_out
