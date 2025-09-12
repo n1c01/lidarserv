@@ -46,7 +46,7 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){
     }
 
     while !stop_token.is_cancelled() {
-        thread::sleep(Duration::from_millis(500));
+        thread::sleep(Duration::from_millis(1000));
         //todo!(make output clearer for usecase)
         let paused = status.paused.load(Ordering::Relaxed);
         let shutdown = status.shutdown.load(Ordering::Relaxed);

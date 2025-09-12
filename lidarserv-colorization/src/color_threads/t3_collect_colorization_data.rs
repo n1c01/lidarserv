@@ -22,16 +22,18 @@ pub(crate) fn thread_3_collect_colorization_data(
     let mut counter = 0;
     let mut image_data_counter = 0;
     let mut node_data_counter = 0;
-    let mut node_complete_message_counter = 0;
+    let mut query_complete_message_counter = 0;
+    let mut images_ids_of_complete_queries = String::new();
     let mut received_points_per_image = HashMap::new();
     loop {
         debug!("collect_colorization_data_thread: \nloop count: {:?},\
          \nrecv image count: {:?},\
          \nrecv node complete count: {:?}, \
-         \nrecv node count: {:?}\
-         \nnode count per image: {:?}\
+         \nimage ids of complete nodes{:?}, \
+         \nrecv node count: {:?},\
+         \nnode count per image: {:?},\
          \n",
-            counter,image_data_counter,node_complete_message_counter, node_data_counter, received_points_per_image);
+            counter,image_data_counter,query_complete_message_counter,images_ids_of_complete_queries, node_data_counter, received_points_per_image);
         counter += 1;
         //handle stop signal
         if stop_token.is_cancelled() {
@@ -62,7 +64,8 @@ pub(crate) fn thread_3_collect_colorization_data(
                         data.image_id
                     );
                     image_data_map.remove(&data.image_id);
-                    node_complete_message_counter += 1;
+                    query_complete_message_counter += 1;
+                    images_ids_of_complete_queries.push_str(&format!("{:?},", data.image_id));
                     continue;
                 } else {
                     debug!(
