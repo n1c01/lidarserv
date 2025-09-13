@@ -26,6 +26,7 @@ pub(crate) fn thread_3_collect_colorization_data(
     let mut images_ids_of_complete_queries = String::new();
     let mut received_points_per_image = HashMap::new();
     loop {
+        /*
         debug!("collect_colorization_data_thread: \nloop count: {:?},\
          \nrecv image count: {:?},\
          \nrecv node complete count: {:?}, \
@@ -33,6 +34,7 @@ pub(crate) fn thread_3_collect_colorization_data(
          \nnode count per image: {:?},\
          \n",
             counter,image_data_counter,query_complete_message_counter, node_data_counter, received_points_per_image);
+         */
         counter += 1;
 
         //handle stop signal
