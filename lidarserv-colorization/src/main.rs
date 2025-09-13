@@ -18,6 +18,7 @@ use std::sync::{mpsc, Arc};
 use std::thread;
 use tokio::runtime::Runtime;
 use tokio_util::sync::CancellationToken;
+use crate::color_threads::t5_send_points::thread_5_send_points;
 
 mod cli;
 mod color_threads;
@@ -50,6 +51,8 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let child_token2 = stop_source.child_token();
     let child_token3 = stop_source.child_token();
     let child_token4 = stop_source.child_token();
+    let child_token5 = stop_source.child_token();
+
 
     let (exit_tx, exit_rx) = channel();
     {
@@ -200,12 +203,20 @@ fn run(args: AppOptions) -> Result<(), Error> {
     };
 
     //LidarServ store Thread
-    //TODO: LidarServ Thread, that sends the processed points to the lidarserv server
+    let exit_tx5 = exit_tx.clone();
+    let status5 = Arc::clone(&status);
+    let args5 = args.clone();
     let join_lidarserv_store = {
         thread::spawn(move || {
-            //todo!("lidarserv store thread 5")
-            colorized_data_rx
-            //exit_tx.send(()).ok()
+            status5.t5_send_points_thread_running.store(true, Ordering::Relaxed);
+            thread_5_send_points(
+                args5,
+                child_token5,
+                colorized_data_rx,
+                status5.clone(),
+            ).log_error();
+            status5.t5_send_points_thread_running.store(false, Ordering::Relaxed);
+            exit_tx5.send(()).ok()
         })
     };
 

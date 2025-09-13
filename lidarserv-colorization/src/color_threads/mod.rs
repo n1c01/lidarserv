@@ -9,6 +9,7 @@ pub(crate) mod t1_processing_frustum;
 pub(crate) mod t2_send_frustum;
 pub(crate) mod t3_collect_colorization_data;
 pub(crate) mod t4_colorization;
+pub(crate) mod t5_send_points;
 
 impl fmt::Debug for ImageData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

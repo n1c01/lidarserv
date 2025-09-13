@@ -38,6 +38,10 @@ pub struct Status {
     pub t4_managing_colorization_thread_current_image_id: AtomicU64,
     pub t4_managing_colorization_thread_current_nr_received_points: AtomicU64,
     pub t4_managing_colorization_thread_current_nr_received_nodes: AtomicU64,
+
+    pub t5_send_points_thread_running: AtomicBool,
+    pub t5_send_points_thread_nr_received_points: AtomicU64,
+    pub t5_send_points_thread_nr_received_nodes: AtomicU64,
 }
 
 pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){
@@ -78,7 +82,9 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){
         let t4_managing_colorization_thread_current_nr_received_points = Option::from(status.t4_managing_colorization_thread_current_nr_received_points.load(Ordering::Relaxed));
         let t4_managing_colorization_thread_current_nr_received_nodes = Option::from(status.t4_managing_colorization_thread_current_nr_received_nodes.load(Ordering::Relaxed));
 
-
+        let t5_send_points_thread_running = status.t5_send_points_thread_running.load(Ordering::Relaxed);
+        let t5_send_points_thread_nr_received_points = Option::from(status.t5_send_points_thread_nr_received_points.load(Ordering::Relaxed));
+        let t5_send_points_thread_nr_received_nodes = Option::from(status.t5_send_points_thread_nr_received_nodes.load(Ordering::Relaxed));
 
         let state_part = if shutdown {
             "[⏹]"
@@ -124,6 +130,13 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){
                        t4_managing_colorization_thread_current_nr_received_points,
                        t4_managing_colorization_thread_current_nr_received_nodes)
             .expect("couldnt write status of managing_colorization_thread");
+        check_or_cross(& mut thread_states,
+                       t5_send_points_thread_running,
+                       "t5_send_points",
+                       None,
+                       t5_send_points_thread_nr_received_points,
+                       t5_send_points_thread_nr_received_nodes)
+            .expect("couldnt write status of send_points_thread");
 
 
         println!(
@@ -131,17 +144,6 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){
             state_part,
             style("Thread states: ").bold(),
             thread_states,
-            /*
-            "{}[{} {}] [{} {}] [{} {}]",
-            state_part,
-            style("RX").bold(),
-            rx_part,
-            style("PROCESS").bold(),
-            process_part,
-            style("TX").bold(),
-            tx_part
-
-             */
         );
     }
 }
