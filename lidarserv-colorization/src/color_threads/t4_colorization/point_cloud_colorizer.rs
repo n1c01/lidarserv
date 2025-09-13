@@ -7,7 +7,6 @@ use lidarserv_common::query::view_frustum::ViewFrustumQuery;
 use log::{debug, warn};
 use pasture_core::containers::{BorrowedBuffer, BorrowedMutBuffer, VectorBuffer};
 use pasture_core::layout::attributes::{COLOR_RGB, POSITION_3D};
-use pasture_core::layout::PointAttributeDataType::Vec3u16;
 
 /// The picture struct holds a view frustum and a corresponding dynamic image
 pub struct PointCloudColorizer {
@@ -61,32 +60,17 @@ impl PointCloudColorizer {
                     return Err(e);
                 }
             };
-            let result_color:Vec<u16> = Vec::with_capacity(COLOR_RGB.size() as usize);
+            //todo! handle previous colors
             if color.is_empty() {
-                debug!("no color given previously");
+                //debug!("no color given previously");
             } else {
-                debug!("color given previously");
+                //debug!("color given previously");
             }
             let result_color: Vector3<u16> = match color_point.color {
                 Some(c) => Vector3::new(c.red as u16, c.green as u16, c.blue as u16),
                 None => Vector3::new(0, 0, 200),
             };
-            /*
-            match color_point.color {
-                Some(c) => {
-                    result_color[0] = c.red;
-                    result_color[1] = c.green;
-                    result_color[2] = c.blue;
-                    debug!("result color of a point: {:?}", result_color);
-                }
-                None => {
-                    let default_color = Color::new(0, 0, 200);
-                    result_color[0] = default_color.red;
-                    result_color[1] = default_color.green;
-                    result_color[2] = default_color.blue;
-                }
-            };
-             */
+            debug!("color of some point: {:?}",result_color);
             unsafe {
                 let color_bytes: &[u8] = std::slice::from_raw_parts(
                     &result_color as *const Vector3<u16> as *const u8,
@@ -161,104 +145,6 @@ impl PointCloudColorizer {
 
         Ok(colorized_point)
     }
-
-    /*
-                //let mut view = AttributeView::new(&mut vector_buffer);
-                for point_data in points {
-                    //vector_buffer.get_point(i, &mut point_data);
-                    debug!("{:?}", point_data);
-                    //let point = point_data.unwrap_or_else(|e| panic!("Failed to read point: {}", e));
-                    let point = Point{
-                        x: position.x,
-                        y: position.y,
-                        z: position.z,
-                        intensity: point_data.intensity,
-                        color: Some(Color::new(60, 10, 100)),
-                        ..Default::default()
-                    };
-                    let position;
-                    let color;
-
-                    //Find xy position of point in view frustum of the picture
-                    match self.find_xy(&point, view_projection) {
-                        Err(e) => {
-                            match e {
-                                //position is out of frame in relation to the camera (behind the camera)
-                                //TODO: check if this is the case
-                                "Position out of bounds (z-direction)" => {
-                                    //skip points that are not represented by the picture
-                                    continue;
-                                }
-                                &_ => {
-                                    panic!("Failed to find xy position Error: {:?}", e)
-                                }
-                            }
-                        }
-                        Ok(p) => {
-                            position = p;
-                        }
-                    }
-
-                    //Find the Pixel corresponding to the point
-                    match self.find_color(position) {
-                        Err(error) => {
-                            match error {
-                                "Position out of bounds (x > picture)" => {
-                                    //Don't return Points that are not covered by the picture
-                                    //continue;
-                                    //TODO: in future (when only accessing relevant points) this should probably return a error
-                                    //TODO: remove testwise default color for points outside the picture
-                                    color = Color::new(0, 250, 0);
-                                }
-                                "Position out of bounds (x < 0)" => {
-                                    //Don't return Points that are not covered by the picture
-                                    //continue;
-                                    color = Color::new(0, 100, 0);
-                                }
-                                "Position out of bounds (y > picture)" => {
-                                    //Don't return Points that are not covered by the picture
-                                    //continue;
-                                    color = Color::new(0, 0, 250);
-                                }
-
-                                "Position out of bounds (y < 0)" => {
-                                    //Don't return Points that are not covered by the picture
-                                    //continue;
-                                    color = Color::new(0, 0, 100);
-                                }
-                                &_ => {
-                                    panic!("{:?}", error)
-                                }
-                            }
-                        }
-                        Ok(c) => {
-                            color = c;
-                        }
-                    }
-                    //Colorize the point
-                    let colorized_point = self
-                        .colorize_point(&point, color)
-                        .unwrap_or_else(|e| panic!("Failed to colorize point: {}", e));
-
-                    //write out the point
-                    /*
-                    cloud_writer
-                        .write_point(colorized_point)
-                        .unwrap_or_else(|e| panic!("Failed to write point: {}", e))
-
-                     */
-                }
-        /*
-                //close the writer
-                cloud_writer
-                    .close()
-                    .unwrap_or_else(|e| panic!("Failed to close writer: {}", e));
-
-         */
-
-        Ok("Done")
-    }
-     */
 
     ///Get the projection matrix for the picture
     /// # attributes
@@ -417,6 +303,7 @@ impl PointCloudColorizer {
             .get_pixel(position.x, position.y)
             .to_rgb()
             .0;
+        debug!("pixel_color: {:?} of postition X: {:?}, Y: {:?}", pixel_color,position.x, position.y);
         Ok(Color::new(
             pixel_color[0] as u16,
             pixel_color[1] as u16,
