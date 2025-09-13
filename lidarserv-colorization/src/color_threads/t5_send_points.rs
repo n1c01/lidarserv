@@ -7,7 +7,7 @@ use crate::cli::AppOptions;
 use crate::color_threads::status::Status;
 
 pub fn thread_5_send_points(
-    args: AppOptions,
+    _args: AppOptions,
     stop_token: CancellationToken,
     colorized_points_rx: mpsc::Receiver<VectorBuffer>,
     status: Arc<Status>,
