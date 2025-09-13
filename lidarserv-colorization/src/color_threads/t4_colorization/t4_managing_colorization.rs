@@ -61,7 +61,13 @@ pub(crate) fn thread_4_managing_colorization(
             }
         };
         debug!("point data, after colorization: {:?}",colorized_points.len());
-        colorized_points_tx.send(colorized_points).expect("failed to send colorized points");
+        match colorized_points_tx.send(colorized_points){
+            Ok(_) => {}
+            Err(error) => {
+                warn!("thread_4_managing_colorization: colorized points not sent, with error {:?}", error);
+                return Ok(());
+            }
+        }
     }
     Ok(())
 }
