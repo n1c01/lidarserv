@@ -23,6 +23,8 @@ use crate::color_threads::t5_send_points::thread_5_send_points;
 mod cli;
 mod color_threads;
 
+//TODO: check underscored parameters at the end. They are not used.
+
 fn main() -> ExitCode {
     // arg parsing
     let args = AppOptions::parse_from(get_unused_args());
