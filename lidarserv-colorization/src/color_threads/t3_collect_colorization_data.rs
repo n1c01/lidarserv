@@ -19,12 +19,13 @@ pub(crate) fn thread_3_collect_colorization_data(
 ) -> anyhow::Result<()> {
     let mut image_data_map: HashMap<u64, ImageData> = HashMap::new();
 
-    let mut counter = 0;
-    let mut image_data_counter = 0;
-    let mut node_data_counter = 0;
-    let mut query_complete_message_counter = 0;
-    let mut images_ids_of_complete_queries = String::new();
-    let mut received_points_per_image = HashMap::new();
+    //debugging counters and information
+    let mut _counter = 0;
+    let mut _image_data_counter = 0;
+    let mut _node_data_counter = 0;
+    let mut _query_complete_message_counter = 0;
+    let mut _images_ids_of_complete_queries = String::new();
+    let mut _received_points_per_image = HashMap::new();
     loop {
         /*
         debug!("collect_colorization_data_thread: \nloop count: {:?},\
@@ -35,7 +36,7 @@ pub(crate) fn thread_3_collect_colorization_data(
          \n",
             counter,image_data_counter,query_complete_message_counter, node_data_counter, received_points_per_image);
          */
-        counter += 1;
+        _counter += 1;
 
         //handle stop signal
         if stop_token.is_cancelled() {
@@ -50,7 +51,7 @@ pub(crate) fn thread_3_collect_colorization_data(
                 //safe picture data for processing
                 status.t3_collect_colorization_data_thread_current_image_id.store(data.image_id_and_frustum.image_id,Ordering::Relaxed);
                 safe_image_to_hashmap(data, &mut image_data_map);
-                image_data_counter+=1;
+                _image_data_counter +=1;
             }
             Err(_) => { /*Timeout therefore nothing happens here*/ }
         };
@@ -65,8 +66,8 @@ pub(crate) fn thread_3_collect_colorization_data(
                         data.image_id
                     );
                     image_data_map.remove(&data.image_id);
-                    query_complete_message_counter += 1;
-                    images_ids_of_complete_queries.push_str(&format!("{:?},", data.image_id));
+                    _query_complete_message_counter += 1;
+                    _images_ids_of_complete_queries.push_str(&format!("{:?},", data.image_id));
                     continue;
                 } else {
                     debug!(
@@ -75,12 +76,12 @@ pub(crate) fn thread_3_collect_colorization_data(
                     );
                     status.t3_collect_colorization_data_thread_nr_received_points.fetch_add(data.vector_buffer.len() as u64, Ordering::Relaxed);
                     status.t3_collect_colorization_data_thread_nr_received_nodes.fetch_add(1, Ordering::Relaxed);
-                    node_data_counter += 1;
-                    let received_points = received_points_per_image.get(&data.image_id);
+                    _node_data_counter += 1;
+                    let received_points = _received_points_per_image.get(&data.image_id);
                     if received_points.is_some() {
-                        received_points_per_image.insert(data.image_id, received_points.unwrap() + data.vector_buffer.len() as u64);
+                        _received_points_per_image.insert(data.image_id, received_points.unwrap() + data.vector_buffer.len() as u64);
                     } else {
-                        received_points_per_image.insert(data.image_id, data.vector_buffer.len() as u64);
+                        _received_points_per_image.insert(data.image_id, data.vector_buffer.len() as u64);
                     }
                     data
                 }
