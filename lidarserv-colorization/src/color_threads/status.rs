@@ -27,6 +27,7 @@ pub struct Status {
     pub t2_send_frustum_thread_running: AtomicBool,
     pub t2_send_frustum_thread_current_image_id: AtomicU64,
     pub t2_send_frustum_thread_nr_received_points: AtomicU64, //Number of received points
+    pub t2_send_frustum_thread_nr_received_nodes: AtomicU64, //Number of received nodes
 
     pub t3_collect_colorization_data_thread_running: AtomicBool,
     pub t3_collect_colorization_data_thread_current_image_id: AtomicU64,
@@ -35,7 +36,6 @@ pub struct Status {
 
     pub t4_managing_colorization_thread_running: AtomicBool,
     pub t4_managing_colorization_thread_current_image_id: AtomicU64,
-    pub t2_send_frustum_thread_nr_received_nodes: AtomicU64, //Number of received nodes
 }
 
 pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){
@@ -78,6 +78,7 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){
 
 
         let t4_managing_colorization_thread_current_image_id = Option::from(status.t4_managing_colorization_thread_current_image_id.load(Ordering::Relaxed));
+//TODO Add t4 status infomration!!!
 
         let state_part = if shutdown {
             "[⏹]"

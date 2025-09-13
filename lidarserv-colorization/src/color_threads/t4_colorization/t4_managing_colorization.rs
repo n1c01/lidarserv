@@ -2,11 +2,12 @@ use crate::cli::AppOptions;
 use crate::color_threads::status::Status;
 use crate::color_threads::t4_colorization::point_cloud_colorizer::PointCloudColorizer;
 use crate::color_threads::{t4_colorization::ColorizationData};
-use image::{DynamicImage, RgbaImage};
+use image::{DynamicImage, RgbImage};
 use log::{debug, warn};
 use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
+use pasture_core::containers::BorrowedBuffer;
 use tokio_util::sync::CancellationToken;
 
 pub(crate) fn thread_4_managing_colorization(
@@ -58,15 +59,15 @@ pub(crate) fn thread_4_managing_colorization(
                 return Ok(());
             }
         };
-        debug!("point data, after colorization: {:?}",colorized_points);
+        debug!("point data, after colorization: {:?}",colorized_points.len());
     }
     Ok(())
 }
 
 
 fn vec_to_dynamic_image_raw(pixels: Vec<u8>, width: u32, height: u32) -> DynamicImage {
-    // Assuming RGBA8 pixel format (4 channels per pixel)
-    let img = RgbaImage::from_raw(width, height, pixels)
+    //using rgb8 image type
+    let img = RgbImage::from_raw(width, height, pixels)
         .expect("Invalid buffer length for given dimensions");
-    DynamicImage::ImageRgba8(img)
+    DynamicImage::ImageRgb8(img)
 }

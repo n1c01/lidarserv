@@ -115,15 +115,9 @@ pub(crate) fn thread_3_collect_colorization_data(
             colorization_data.image_data.image_id_and_frustum.image_id,
             colorization_data.point_data.len()
         );
-        match colorization_data_tx.send(colorization_data) {
-            Ok(_) => {
-
-            }
-            Err(e) => {
-                debug!("collect_colorization_data_thread: error sending colorization data: {:?}", e);
-            }
-        };
-
+        colorization_data_tx.send(colorization_data).unwrap_or_else(|e| {
+            error!("collect_colorization_data_thread: error sending colorization data: {}", e);
+        })
     }
 
     Ok(())
