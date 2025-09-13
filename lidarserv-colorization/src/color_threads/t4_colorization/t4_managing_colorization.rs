@@ -7,14 +7,14 @@ use log::{debug, warn};
 use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
-use pasture_core::containers::BorrowedBuffer;
+use pasture_core::containers::{BorrowedBuffer, VectorBuffer};
 use tokio_util::sync::CancellationToken;
 
 pub(crate) fn thread_4_managing_colorization(
     _args: AppOptions, //todo! check if it can be removed
     stop_token: CancellationToken,
     colorization_data_rx: mpsc::Receiver<ColorizationData>,
-    _colorized_points: mpsc::Sender<ColorizationData>,
+    colorized_points_tx: mpsc::Sender<VectorBuffer>,
     status: Arc<Status>,
 ) -> anyhow::Result<()> {
     loop {
@@ -42,7 +42,6 @@ pub(crate) fn thread_4_managing_colorization(
         };
 
         let point_cloud_colorizer = PointCloudColorizer {
-            //todo use real colorizer
             frustum: colorization_data.image_data.image_id_and_frustum.frustum,
             dynamic_image: vec_to_dynamic_image_raw(colorization_data.image_data.image,
                                                     colorization_data.image_data.width,
@@ -60,6 +59,7 @@ pub(crate) fn thread_4_managing_colorization(
             }
         };
         debug!("point data, after colorization: {:?}",colorized_points.len());
+        colorized_points_tx.send(colorized_points).expect("failed to send colorized points");
     }
     Ok(())
 }

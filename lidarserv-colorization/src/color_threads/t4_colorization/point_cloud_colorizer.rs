@@ -4,9 +4,10 @@ use lidarserv_common::nalgebra::{
     Const, Isometry3, OMatrix, Perspective3, Point3, RowVector4, Vector2, Vector3, U4,
 };
 use lidarserv_common::query::view_frustum::ViewFrustumQuery;
-use log::{warn};
+use log::{debug, warn};
 use pasture_core::containers::{BorrowedBuffer, BorrowedMutBuffer, VectorBuffer};
 use pasture_core::layout::attributes::{COLOR_RGB, POSITION_3D};
+use pasture_core::layout::PointAttributeDataType::Vec3u16;
 
 /// The picture struct holds a view frustum and a corresponding dynamic image
 pub struct PointCloudColorizer {
@@ -48,15 +49,50 @@ impl PointCloudColorizer {
                 z: position[2] as f64,
                 ..Default::default()
             };
-            match self.process_point(&point, view_projection) {
-                Ok(_) => {}
-                Err("Position out of bounds (z-direction)") => {
-                    warn!("Position out of bounds (z-direction)")
+            let color_point = match self.process_point(&point, view_projection) {
+                Ok(data) => {
+                    data
                 }
-                Err(_) => {}
+                Err("Position out of bounds (z-direction)") => {
+                    warn!("Position out of bounds (z-direction)");
+                    continue;
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            };
+            let result_color:Vec<u16> = Vec::with_capacity(COLOR_RGB.size() as usize);
+            if color.is_empty() {
+                debug!("no color given previously");
+            } else {
+                debug!("color given previously");
             }
+            let result_color: Vector3<u16> = match color_point.color {
+                Some(c) => Vector3::new(c.red as u16, c.green as u16, c.blue as u16),
+                None => Vector3::new(0, 0, 200),
+            };
+            /*
+            match color_point.color {
+                Some(c) => {
+                    result_color[0] = c.red;
+                    result_color[1] = c.green;
+                    result_color[2] = c.blue;
+                    debug!("result color of a point: {:?}", result_color);
+                }
+                None => {
+                    let default_color = Color::new(0, 0, 200);
+                    result_color[0] = default_color.red;
+                    result_color[1] = default_color.green;
+                    result_color[2] = default_color.blue;
+                }
+            };
+             */
             unsafe {
-                vector_buffer.set_attribute(&COLOR_RGB, i, &color);
+                let color_bytes: &[u8] = std::slice::from_raw_parts(
+                    &result_color as *const Vector3<u16> as *const u8,
+                    size_of::<Vector3<u16>>(),
+                );
+                vector_buffer.set_attribute(&COLOR_RGB, i,color_bytes);
             }
         }
         Ok(vector_buffer)
