@@ -28,6 +28,8 @@ pub(crate) fn thread_4_managing_colorization(
             Ok(data) => {
                 debug!("thread_4_managing_colorization: colorization data received");
                 status.t4_managing_colorization_thread_current_image_id.store(data.image_data.image_id_and_frustum.image_id,Ordering::Relaxed);
+                status.t4_managing_colorization_thread_current_nr_received_points.fetch_add(data.point_data.len() as u64, Ordering::Relaxed);
+                status.t4_managing_colorization_thread_current_nr_received_nodes.fetch_add(1, Ordering::Relaxed);
                 data
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {

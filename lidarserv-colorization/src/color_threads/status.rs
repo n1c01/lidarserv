@@ -36,6 +36,8 @@ pub struct Status {
 
     pub t4_managing_colorization_thread_running: AtomicBool,
     pub t4_managing_colorization_thread_current_image_id: AtomicU64,
+    pub t4_managing_colorization_thread_current_nr_received_points: AtomicU64,
+    pub t4_managing_colorization_thread_current_nr_received_nodes: AtomicU64,
 }
 
 pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){
@@ -51,34 +53,32 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){
         let paused = status.paused.load(Ordering::Relaxed);
         let shutdown = status.shutdown.load(Ordering::Relaxed);
 
-        let ros_thread_running = status.t0_ros_thread_running.load(Ordering::Relaxed);
-        let process_frustum_thread_running = status
-            .t1_process_frustum_thread_running
-            .load(Ordering::Relaxed);
-        let send_frustum_thread_running =
-            status.t2_send_frustum_thread_running.load(Ordering::Relaxed);
-        let collect_colorization_data_thread_running = status
-            .t3_collect_colorization_data_thread_running
-            .load(Ordering::Relaxed);
-        let managing_colorization_thread_running = status
-            .t4_managing_colorization_thread_running
-            .load(Ordering::Relaxed);
 
+
+
+        let t0_ros_thread_running = status.t0_ros_thread_running.load(Ordering::Relaxed);
         let t0_ros_current_image_id = Option::from(status.t0_ros_current_image_id.load(Ordering::Relaxed));
 
+        let t1_process_frustum_thread_running = status.t1_process_frustum_thread_running.load(Ordering::Relaxed);
         let t1_process_frustum_thread_current_image_id = Option::from(status.t1_process_frustum_thread_current_image_id.load(Ordering::Relaxed));
 
+        let t2_send_frustum_thread_running = status.t2_send_frustum_thread_running.load(Ordering::Relaxed);
         let t2_send_frustum_thread_current_image_id = Option::from(status.t2_send_frustum_thread_current_image_id.load(Ordering::Relaxed));
         let t2_send_frustum_thread_nr_received_points = Option::from(status.t2_send_frustum_thread_nr_received_points.load(Ordering::Relaxed));
         let t2_send_frustum_thread_nr_received_nodes = Option::from(status.t2_send_frustum_thread_nr_received_nodes.load(Ordering::Relaxed));
 
+        let t3_collect_colorization_data_thread_running = status.t3_collect_colorization_data_thread_running.load(Ordering::Relaxed);
         let t3_collect_colorization_data_thread_current_image_id = Option::from(status.t3_collect_colorization_data_thread_current_image_id.load(Ordering::Relaxed));
         let t3_collect_colorization_data_thread_nr_received_points = Option::from(status.t3_collect_colorization_data_thread_nr_received_points.load(Ordering::Relaxed));
         let t3_collect_colorization_data_thread_nr_received_nodes = Option::from(status.t3_collect_colorization_data_thread_nr_received_nodes.load(Ordering::Relaxed));
 
 
+        let t4_managing_colorization_thread_running = status.t4_managing_colorization_thread_running.load(Ordering::Relaxed);
         let t4_managing_colorization_thread_current_image_id = Option::from(status.t4_managing_colorization_thread_current_image_id.load(Ordering::Relaxed));
-//TODO Add t4 status infomration!!!
+        let t4_managing_colorization_thread_current_nr_received_points = Option::from(status.t4_managing_colorization_thread_current_nr_received_points.load(Ordering::Relaxed));
+        let t4_managing_colorization_thread_current_nr_received_nodes = Option::from(status.t4_managing_colorization_thread_current_nr_received_nodes.load(Ordering::Relaxed));
+
+
 
         let state_part = if shutdown {
             "[⏹]"
@@ -90,39 +90,39 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){
 
         let mut thread_states = String::new();
         check_or_cross(& mut thread_states,
-                       ros_thread_running,
+                       t0_ros_thread_running,
                        "t0_ros",
                        t0_ros_current_image_id,
                        None,
                        None)
             .expect("couldnt write status of ros thread");
         check_or_cross(& mut thread_states,
-                       process_frustum_thread_running,
+                       t1_process_frustum_thread_running,
                        "t1_frustum",
                        t1_process_frustum_thread_current_image_id,
                        None,
                        None)
             .expect("couldnt write status of process_frustum_thread");
         check_or_cross(& mut thread_states,
-                       send_frustum_thread_running,
+                       t2_send_frustum_thread_running,
                        "t2_send_f",
                        t2_send_frustum_thread_current_image_id,
                        t2_send_frustum_thread_nr_received_points,
                        t2_send_frustum_thread_nr_received_nodes)
             .expect("couldnt write status of send_frustum_thread");
         check_or_cross(& mut thread_states,
-                       collect_colorization_data_thread_running,
+                       t3_collect_colorization_data_thread_running,
                        "t3_collect_p",
                        t3_collect_colorization_data_thread_current_image_id,
                        t3_collect_colorization_data_thread_nr_received_points,
                        t3_collect_colorization_data_thread_nr_received_nodes)
             .expect("couldnt write status of collect_colorization_data_thread");
         check_or_cross(& mut thread_states,
-                       managing_colorization_thread_running,
+                       t4_managing_colorization_thread_running,
                        "t4_colorize",
                        t4_managing_colorization_thread_current_image_id,
-                       None,
-                       None)
+                       t4_managing_colorization_thread_current_nr_received_points,
+                       t4_managing_colorization_thread_current_nr_received_nodes)
             .expect("couldnt write status of managing_colorization_thread");
 
 
