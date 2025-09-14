@@ -2,23 +2,28 @@ use std::sync::{mpsc, Arc};
 use std::time::Duration;
 use log::debug;
 use pasture_core::containers::{BorrowedBuffer, VectorBuffer};
+use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
+use lidarserv_server::index::write_query::WriteQuery;
+use lidarserv_server::net::client::update::UpdateClient;
 use crate::cli::AppOptions;
 use crate::color_threads::status::Status;
 
-pub fn thread_5_send_points(
-    _args: AppOptions,
+pub async fn thread_5_send_points(
+    args: AppOptions,
     stop_token: CancellationToken,
     colorized_points_rx: mpsc::Receiver<VectorBuffer>,
     status: Arc<Status>,
 ) -> anyhow::Result<()> {
+    //let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
+    //let update_client = UpdateClient::connect((args.host.as_str(), args.port), &mut shutdown_rx).await?;
     loop{
         if stop_token.is_cancelled() {
-            debug!("thread_4_managing_colorization: Stop signal received");
+            debug!("Stop signal received");
             break;
         }
-
-        let _colorized_points_vecbuf = match colorized_points_rx.recv_timeout(Duration::new(1, 0)){
+        debug!("Send Points Thread: Waiting for points");
+        let colorized_points_vector = match colorized_points_rx.recv_timeout(Duration::new(1, 0)){
             Ok(data) => {
                 status.t5_send_points_thread_nr_received_points.fetch_add(data.len() as u64, std::sync::atomic::Ordering::Relaxed);
                 status.t5_send_points_thread_nr_received_nodes.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -30,11 +35,14 @@ pub fn thread_5_send_points(
         };
         //todo construct client
 
+        //update_client.write.write_query(WriteQuery::Update(colorized_points_vector)).await?
+
         //todo send points to server
 
     }
-
-
+    //shutdown client
+    //shutdown_tx.send(()).ok();
+    debug!("Send Points Thread: finished");
 
     Ok(())
 }

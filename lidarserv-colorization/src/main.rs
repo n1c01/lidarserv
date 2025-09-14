@@ -210,13 +210,14 @@ fn run(args: AppOptions) -> Result<(), Error> {
     let args5 = args.clone();
     let join_lidarserv_store = {
         thread::spawn(move || {
+            let rt = Runtime::new().unwrap();
             status5.t5_send_points_thread_running.store(true, Ordering::Relaxed);
-            thread_5_send_points(
+            rt.block_on(thread_5_send_points(
                 args5,
                 child_token5,
                 colorized_data_rx,
                 status5.clone(),
-            ).log_error();
+            )).log_error();
             status5.t5_send_points_thread_running.store(false, Ordering::Relaxed);
             exit_tx5.send(()).ok()
         })
