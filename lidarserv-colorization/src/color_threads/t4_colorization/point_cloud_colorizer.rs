@@ -37,17 +37,32 @@ impl PointCloudColorizer {
             return Err("Pointcloud does not have a color attribute");
         };
 
+        //TODO! Use full position with right casting.
         let mut position: Vec<u8> = vec![0; POSITION_3D.size() as usize];
-        let mut color: Vec<u8> = vec![0; COLOR_RGB.size() as usize];
+        let mut color_raw: Vec<u8> = vec![0; COLOR_RGB.size() as usize];
         for i in 0..vector_buffer.len() {
+            //todo! check endianess
+            //convert position to f64 then to Point struct
             BorrowedBuffer::get_attribute(&vector_buffer, &POSITION_3D, i, &mut position);
-            BorrowedBuffer::get_attribute(&vector_buffer, &COLOR_RGB, i, &mut color);
-            let point = Point {
-                x: position[0] as f64,
-                y: position[1] as f64,
-                z: position[2] as f64,
-                ..Default::default()
-            };
+            let x = f64::from_le_bytes(position[0..8].try_into().unwrap());
+            let y = f64::from_le_bytes(position[8..16].try_into().unwrap());
+            let z = f64::from_le_bytes(position[16..24].try_into().unwrap());
+            let point = Point { x, y, z, ..Default::default() };
+
+            //convert the previous color to u16 then to Color struct
+            BorrowedBuffer::get_attribute(&vector_buffer, &COLOR_RGB, i, &mut color_raw);
+            let r = u16::from_le_bytes(color_raw[0..2].try_into().unwrap());
+            let g = u16::from_le_bytes(color_raw[2..4].try_into().unwrap());
+            let b = u16::from_le_bytes(color_raw[4..6].try_into().unwrap());
+            //todo handle previous colors
+            let _color = Color::new(r, g, b);
+
+            /*
+            debug!("position that is being colorized: {:?}", position);
+            debug!("color before {:?}", color);
+            debug!("point that is being colorized: {:?}", point);
+             */
+
             let color_point = match self.process_point(&point, view_projection) {
                 Ok(data) => {
                     data
@@ -60,17 +75,17 @@ impl PointCloudColorizer {
                     return Err(e);
                 }
             };
-            //todo! handle previous colors
-            if color.is_empty() {
-                //debug!("no color given previously");
-            } else {
-                //debug!("color given previously");
-            }
             let result_color: Vector3<u16> = match color_point.color {
-                Some(c) => Vector3::new(c.red as u16, c.green as u16, c.blue as u16),
-                None => Vector3::new(0, 0, 200),
+                Some(c) => {
+                    //debug!("point: [{:?},{:?},{:?}], has color: {:?}",point.x, point.y, point.z, c);
+                    Vector3::new(c.red, c.green, c.blue)
+                },
+                None => {
+                    //todo! handle differently e.g. by continuing
+                    debug!("Point [{:?},{:?},{:?}] has no color, setting to white", point.x, point.y, point.z);
+                    Vector3::new(255, 255, 255)
+                },
             };
-            debug!("color of some point: {:?}",result_color);
             unsafe {
                 let color_bytes: &[u8] = std::slice::from_raw_parts(
                     &result_color as *const Vector3<u16> as *const u8,
@@ -87,22 +102,20 @@ impl PointCloudColorizer {
         point: &Point,
         view_projection: OMatrix<f64, Const<4>, U4>,
     ) -> Result<Point, &'static str> {
-        let position;
-        let color;
         //Find xy position of point in view frustum of the picture
-        match self.find_xy(&point, view_projection) {
+        let position= match self.find_xy(&point, view_projection) {
             Ok(p) => {
-                position = p;
+                p
             }
             Err("Position out of bounds (z-direction)") => {
                 return Err("Position out of bounds (z-direction)");
             }
             Err(e) => {
-                panic!("Failed to find xy position Error: {:?}", e)
+                return Err(e);
             }
-        }
+        };
         //Find the Pixel corresponding to the point
-        match self.find_color(position) {
+        let color:Color = match self.find_color(position) {
             Err(error) => {
                 match error {
                     "Position out of bounds (x > picture)" => {
@@ -110,23 +123,23 @@ impl PointCloudColorizer {
                         //continue;
                         //TODO: in future (when only accessing relevant points) this should probably return a error
                         //TODO: remove testwise default color for points outside the picture
-                        color = Color::new(0, 250, 0);
+                        Color::new(0, 250, 0)
                     }
                     "Position out of bounds (x < 0)" => {
                         //Don't return Points that are not covered by the picture
                         //continue;
-                        color = Color::new(0, 100, 0);
+                        Color::new(0, 100, 0)
                     }
                     "Position out of bounds (y > picture)" => {
                         //Don't return Points that are not covered by the picture
                         //continue;
-                        color = Color::new(0, 0, 250);
+                        Color::new(0, 0, 250)
                     }
 
                     "Position out of bounds (y < 0)" => {
                         //Don't return Points that are not covered by the picture
                         //continue;
-                        color = Color::new(0, 0, 100);
+                        Color::new(0, 0, 100)
                     }
                     &_ => {
                         panic!("{:?}", error)
@@ -134,9 +147,10 @@ impl PointCloudColorizer {
                 }
             }
             Ok(c) => {
-                color = c;
+                debug!("\n\nreal color returned 🥳🎉: {:?}\n", c);
+                c
             }
-        }
+        };
 
         //Colorize the point
         let colorized_point = self
@@ -170,7 +184,6 @@ impl PointCloudColorizer {
 
         let _view_projection_matrix: OMatrix<f64, Const<4>, U4> = proj_frustum.as_matrix() * view_transform.to_matrix();
         let _view_projection_matrix_inv = proj_frustum.inverse() * view_transform.inverse().to_matrix();
-        //println!("view_projection_matrix: {:?}", view_projection_matrix);
 
         let _translation: OMatrix<f64, Const<4>, U4> = OMatrix::new_translation(&Vector3::new(-1000., -1000., 0.));
         let _rotation: OMatrix<f64, Const<4>, U4> = OMatrix::new_rotation_wrt_point(Vector3::new(0.1, 0.1, 0.1), Point3::new(0., 0., 0.));
@@ -197,32 +210,7 @@ impl PointCloudColorizer {
             ),
             RowVector4::new(0., 0., 0., 1.),
         ]);
-
-        /*
-        let test_scale:OMatrix<f64,U4,Const<4>> = OMatrix::from(
-            [-0.083455190734908813, -0.99480626956417306, -0.05827278245644181, 6.2100728800843541,
-            0.88182502907790672, -0.046488086288672265, -0.46927974165199771, 16.725405857514271,
-            0.46413343903574611, -0.090550228431698312, 0.88112473969343208, -58.819855654855907,
-            0., 0., 0., 1.]);
-
-         */
-        /*
-        let test_scale:OMatrix<f64,U4,Const<4>> = OMatrix::from_columns(& [
-            Vector4::new(-0.083455190734908813, -0.99480626956417306, -0.05827278245644181, 6.2100728800843541 ),
-            Vector4::new(0.88182502907790672, -0.046488086288672265, -0.46927974165199771, 16.725405857514271 ),
-            Vector4::new(0.46413343903574611, -0.090550228431698312, 0.88112473969343208, -58.819855654855907 ),
-            Vector4::new(0., 0., 0., 1.)]);
-         */
-        //println!("test_scale: {:?}", test_scale);
-
-        //Holzkirchen_DSC02437 matrix:
-        // -0.083455190734908813 -0.99480626956417306 -0.05827278245644181 6.2100728800843541
-        // 0.88182502907790672 -0.046488086288672265 -0.46927974165199771 16.725405857514271
-        // 0.46413343903574611 -0.090550228431698312 0.88112473969343208 -58.819855654855907
-        // 0 0 0 1
         let view_proj = test_scale;
-
-        //println!("view projection: {:?}", view_proj);
 
         view_proj
     }
@@ -252,22 +240,6 @@ impl PointCloudColorizer {
         let _x = projected_point.x.min(100000.).max(-100000.);
         let _y = projected_point.y.min(100000.).max(-100000.);
         let _z = projected_point.z.min(100000.).max(-100000.);
-
-        //println!("X: {:?}, Y: {:?}, Z: {:?}", x, y, z);
-
-        //let saved_point = Point { x, y, z, intensity: 9, color: Some(Color::new(60, 10, 100)), ..Default::default() };
-
-        /*
-        if projected_point.z < 0. {
-            return Err("Position out of bounds (z-direction)");
-        }
-        */
-        /*
-        projection_cloud_writer
-            .write_point(saved_point)
-            .unwrap_or_else(|e| panic!("Failed to write point: {}", e));
-
-         */
 
         Ok(Vector2::new(projected_point.x, projected_point.y))
     }
@@ -330,44 +302,6 @@ impl PointCloudColorizer {
             color: Some(color),
             ..Default::default()
         })
-
         //TODO: Fix so that cloneing is possible (right point format type)
-        /*
-        let mut colorized_point = point.clone();
-        colorized_point.color = Some(color);
-        Ok(colorized_point)
-
-         */
     }
-
-    /*
-    pub fn example_picture(path: &Path) -> PointCloudColorizer {
-        let window_size = Vector2::new(1000., 1000.);
-
-        let frustum = ViewFrustumQuery {
-            camera_pos: Point3::new(-1., -4., 0.),
-            camera_dir: Vector3::new(2.5, -3., -2.3),
-            camera_up: Vector3::new(0., 0., 1.),
-            fov_y: 0.003,
-            z_near: 0.0,
-            z_far: 1000.0,
-            window_size,
-            max_distance: 1000.0,
-        };
-        let dynamic_image = ImageReader::open(path)
-            .unwrap_or_else(|e| panic!("Failed to read image: {}", e))
-            .decode()
-            .unwrap_or_else(|e| panic!("Failed to decode image: {}", e))
-            .resize(
-                window_size.x as u32,
-                window_size.y as u32,
-                FilterType::Gaussian,
-            );
-
-        PointCloudColorizer {
-            frustum,
-            dynamic_image,
-        }
-    }
-    */
 }
