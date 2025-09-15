@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use clap::Parser;
 
 /// Connector that forwards point clouds from ROS into lidarserv.
@@ -39,4 +40,10 @@ pub struct AppOptions {
     /// Port of the lidarserv server
     #[clap(long, default_value = "4567")]
     pub port: u16,
+
+    //TODO: create config and use it.
+    /// Folder, that the config of the colorization is stored in
+    #[clap(default_value = ".", hide_default_value = true)]
+    pub path: PathBuf,
+
 }

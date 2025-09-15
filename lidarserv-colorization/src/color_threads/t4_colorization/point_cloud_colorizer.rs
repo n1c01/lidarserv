@@ -210,6 +210,7 @@ impl PointCloudColorizer {
             ),
             RowVector4::new(0., 0., 0., 1.),
         ]);
+        //todo change to real projection matrix
         let view_proj = test_scale;
 
         view_proj
