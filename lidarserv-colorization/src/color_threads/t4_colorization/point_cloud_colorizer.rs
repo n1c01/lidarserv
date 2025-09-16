@@ -37,12 +37,12 @@ impl PointCloudColorizer {
             return Err("Pointcloud does not have a color attribute");
         };
 
-        //TODO! Use full position with right casting.
+        //todo use seperate point buffer for color values
         let mut position: Vec<u8> = vec![0; POSITION_3D.size() as usize];
         let mut color_raw: Vec<u8> = vec![0; COLOR_RGB.size() as usize];
         for i in 0..vector_buffer.len() {
-            //todo! check endianess
             //convert position to f64 then to Point struct
+            //todo use views to skip transformation and be more efficient (in the same step use result buffer for storing the values)
             BorrowedBuffer::get_attribute(&vector_buffer, &POSITION_3D, i, &mut position);
             let x = f64::from_le_bytes(position[0..8].try_into().unwrap());
             let y = f64::from_le_bytes(position[8..16].try_into().unwrap());
