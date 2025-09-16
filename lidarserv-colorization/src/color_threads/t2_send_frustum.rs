@@ -27,7 +27,7 @@ pub async fn thread_2_send_frustum(
     let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
     //loop to wait for new frustums to query.
     loop {
-        //todo! ask Tobias.
+        //todo! ask Tobias and Paul.
         let mut client = ViewerClient::connect((args.host.as_str(), args.port), &mut shutdown_rx).await?;
         //handle stop signal
         if stop_token.is_cancelled() {

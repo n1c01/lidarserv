@@ -147,7 +147,7 @@ impl PointCloudColorizer {
                 }
             }
             Ok(c) => {
-                debug!("\n\nreal color returned 🥳🎉: {:?}\n", c);
+                //debug!("\n\nreal color returned 🥳🎉: {:?}\n", c);
                 c
             }
         };
@@ -276,7 +276,7 @@ impl PointCloudColorizer {
             .get_pixel(position.x, position.y)
             .to_rgb()
             .0;
-        debug!("pixel_color: {:?} of postition X: {:?}, Y: {:?}", pixel_color,position.x, position.y);
+        //debug!("pixel_color: {:?} of postition X: {:?}, Y: {:?}", pixel_color,position.x, position.y);
         Ok(Color::new(
             pixel_color[0] as u16,
             pixel_color[1] as u16,
