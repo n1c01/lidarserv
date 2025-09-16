@@ -15,9 +15,9 @@ struct Inner {
     last_ack: u64,
     ack_after: u64,
 }
-
+//todo capture device client anschauen
 pub struct UpdateClient {
-    pub read: ReadServer,
+    pub read: ReadServer,//todo vermutlich nicht gebraucht
     pub write: WriteClient,
 }
 

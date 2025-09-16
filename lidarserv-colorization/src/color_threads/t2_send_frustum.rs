@@ -27,7 +27,7 @@ pub async fn thread_2_send_frustum(
     let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
     //loop to wait for new frustums to query.
     loop {
-        //todo! ask Tobias and Paul.
+        //todo! move outside the loop, when hashmap is working
         let mut client = ViewerClient::connect((args.host.as_str(), args.port), &mut shutdown_rx).await?;
         //handle stop signal
         if stop_token.is_cancelled() {
@@ -70,8 +70,13 @@ pub async fn thread_2_send_frustum(
                 .receive_update_global_coordinates(&mut shutdown_rx)
                 .await?;
             match update {
-                PartialResult::DeleteNode(_) => warn!("Received unexpected DeleteNode message."),
+                PartialResult::DeleteNode(_) => {
+                    //TODO delete from hashmap
+                    warn!("Received unexpected DeleteNode message.")
+                },
                 PartialResult::UpdateNode(update) => {
+                    //TODO Hashmap mit node id und vectorbuffer um zwischenwerte zu vergleiche viewer main
+                    //TODO add to hashmap
                     //debug!("Send Frustum Thread: image_id {:?}: Received UpdateNode message, sending points", current_image_id);
                     status
                         .t2_send_frustum_thread_nr_received_points
