@@ -22,7 +22,7 @@ pub async fn thread_5_send_points(
             debug!("Stop signal received");
             break;
         }
-        debug!("Send Points Thread: Waiting for points");
+        //debug!("Send Points Thread: Waiting for points");
         let colorized_points_vector = match colorized_points_rx.recv_timeout(Duration::new(1, 0)){
             Ok(data) => {
                 status.t5_send_points_thread_nr_received_points.fetch_add(data.len() as u64, std::sync::atomic::Ordering::Relaxed);
