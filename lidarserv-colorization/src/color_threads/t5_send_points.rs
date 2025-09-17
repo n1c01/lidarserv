@@ -4,10 +4,11 @@ use log::debug;
 use pasture_core::containers::{BorrowedBuffer, VectorBuffer};
 use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
-use lidarserv_server::index::write_query::WriteQuery;
-use lidarserv_server::net::client::update::UpdateClient;
+use lidarserv_server::net::client::writing_clients::write::{Connect, WriteClient};
+use lidarserv_server::net::client::writing_clients::update::Update;
 use crate::cli::AppOptions;
 use crate::color_threads::status::Status;
+
 
 pub async fn thread_5_send_points(
     args: AppOptions,
@@ -15,8 +16,8 @@ pub async fn thread_5_send_points(
     colorized_points_rx: mpsc::Receiver<VectorBuffer>,
     status: Arc<Status>,
 ) -> anyhow::Result<()> {
-    //let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
-    //let update_client = UpdateClient::connect((args.host.as_str(), args.port), &mut shutdown_rx).await?;
+    let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
+    let mut update_client = WriteClient::connect((args.host.as_str(), args.port), &mut shutdown_rx).await?;
     loop{
         if stop_token.is_cancelled() {
             debug!("Stop signal received");
@@ -33,15 +34,13 @@ pub async fn thread_5_send_points(
                 continue;
             }
         };
-        //todo construct client
-
-        //update_client.write.write_query(WriteQuery::Update(colorized_points_vector)).await?
-
-        //todo send points to server
-
+        debug!("Send Points Thread: storing points on server");
+        update_client.update_points_global_coordinates (&colorized_points_vector).await?
+        // todo check if global coordinates is right
+        
     }
     //shutdown client
-    //shutdown_tx.send(()).ok();
+    shutdown_tx.send(()).ok();
     debug!("Send Points Thread: finished");
 
     Ok(())

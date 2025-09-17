@@ -21,6 +21,15 @@ pub struct CaptureDeviceClient {
     codec: PointDataCodec,
 }
 
+/*
+pub trait CaptureDevice {
+    async fn insert_points_global_coordinates(&mut self, points: &VectorBuffer) -> Result<(), LidarServerError>;
+    async fn insert_points_local_coordinates(&mut self, points: &VectorBuffer, ) -> Result<(), LidarServerError>;
+    async fn insert_raw_point_data(&mut self, data: &[u8]) -> Result<(), LidarServerError>;
+
+}
+ */
+
 impl CaptureDeviceClient {
     pub async fn connect<A>(addr: A, shutdown: &mut Receiver<()>) -> Result<Self, LidarServerError>
     where

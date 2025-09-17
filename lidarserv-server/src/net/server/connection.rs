@@ -13,6 +13,11 @@ use std::thread;
 use tokio::net::TcpStream;
 use tokio::sync::broadcast::Receiver;
 
+enum WriteMode {
+    Insert,
+    Update,
+}
+
 pub async fn handle_connection(
     con: TcpStream,
     index: Arc<Octree>,
@@ -83,6 +88,9 @@ pub async fn handle_connection(
             DeviceType::CaptureDevice => {
                 capture_device_mode(con, index, codec, shutdown).await?;
             }
+            DeviceType::UpdateClient => {
+                update_client_mode(con, index, codec, shutdown).await?;
+            }
         }
     } else {
         return Err(LidarServerError::Protocol(
@@ -94,11 +102,30 @@ pub async fn handle_connection(
 }
 
 async fn capture_device_mode(
+    con: Connection<TcpStream>,
+    index: Arc<Octree>,
+    codec: PointDataCodec,
+    shutdown: Receiver<()>,
+) -> Result<(), LidarServerError> {
+    write_mode(con, index, codec, shutdown, WriteMode::Insert).await
+}
+
+async fn update_client_mode(
+    con: Connection<TcpStream>,
+    index: Arc<Octree>,
+    codec: PointDataCodec,
+    shutdown: Receiver<()>,
+) -> Result<(), LidarServerError>{
+    write_mode(con, index, codec, shutdown, WriteMode::Update).await
+}
+
+async fn write_mode(
     mut con: Connection<TcpStream>,
     index: Arc<Octree>,
     codec: PointDataCodec,
     mut shutdown: Receiver<()>,
-) -> Result<(), LidarServerError> {
+    write_mode: WriteMode,
+)-> Result<(), LidarServerError> {
     let codec = codec.instance();
     let mut writer = index.writer();
 
@@ -114,7 +141,7 @@ async fn capture_device_mode(
                 },
                 &[],
             )
-            .await?;
+                .await?;
             return Err(LidarServerError::Protocol(error.into()));
         };
 
@@ -129,16 +156,28 @@ async fn capture_device_mode(
                     },
                     &[],
                 )
-                .await?;
+                    .await?;
                 return Err(LidarServerError::Protocol(error));
             }
         };
 
-        // insert
-        writer.insert(&points);
+        match write_mode {
+            WriteMode::Insert => {
+                // insert
+                writer.insert(&points);
+            }
+            WriteMode::Update => {
+                // update
+                writer.update(&points);
+            }
+        }
+
     }
     Ok(())
 }
+
+
+
 
 /// Handle a connection in viewer mode (serverside).
 /// This function will spawn a new thread that will handle the connection.

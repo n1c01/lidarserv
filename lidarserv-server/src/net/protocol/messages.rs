@@ -47,6 +47,9 @@ pub enum Header {
         update_number: u64,
     },
 
+    /// Sent from a client to the server with point updates that need to be inserted in the database.
+    UpdatePoints,
+
     /// Sent from the server to the client, to indicate that the current query result is complete.
     /// This message is sent after the last IncrementalResult message.
     ResultComplete,
@@ -65,6 +68,7 @@ pub struct Message {
 pub enum DeviceType {
     CaptureDevice,
     Viewer,
+    UpdateClient,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

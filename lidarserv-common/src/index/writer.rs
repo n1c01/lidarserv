@@ -71,6 +71,11 @@ enum IndexingThreadError {
     CacheCleanup(#[from] CacheCleanupError<LeveledGridCell, LazyNode, PointIoError>),
 }
 
+enum WritingType{
+    Insert,
+    Update,
+}
+
 struct OctreeWorkerThread {
     inner: Arc<Inner>,
     inboxes: Arc<Mutex<Inboxes>>,
@@ -510,6 +515,20 @@ impl OctreeWriter {
     }
 
     pub fn insert(&mut self, points: &VectorBuffer) {
+        self.write(points, WritingType::Insert);
+    }
+    pub fn update(&mut self, points: &VectorBuffer) {
+        self.write(points, WritingType::Update);
+    }
+    fn write(&mut self, points: &VectorBuffer, writing_type:WritingType) {
+        match writing_type {
+            WritingType::Insert => {
+                //todo!("DO insert points into the octree")
+            }
+            WritingType::Update => {
+                //todo!("DO update points in the octree")
+            }
+        }
         let nr_points = points.len() as f64;
 
         struct Wct<'a> {
@@ -546,7 +565,7 @@ impl OctreeWriter {
                         VectorBuffer::with_capacity(capacity, points.point_layout().clone())
                     });
                     // safety: both point buffers have the same point layout.
-                    unsafe { cell_points.push_points(points.get_point_ref(rd)) };
+                    unsafe {cell_points.push_points(points.get_point_ref(rd)) };
                 }
 
                 points_by_cell
@@ -558,7 +577,7 @@ impl OctreeWriter {
             points,
             node_hierarchy: self.node_hierarchy,
         }
-        .for_layout_once(&layout);
+            .for_layout_once(&layout);
 
         let mut lock = self.inboxes.lock().unwrap();
         let generation = lock.current_gen;
