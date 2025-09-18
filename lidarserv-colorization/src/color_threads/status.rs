@@ -20,6 +20,7 @@ pub struct Status {
 
     pub t0_ros_thread_running: AtomicBool,
     pub t0_ros_current_image_id: AtomicU64,
+    pub t0_ros_odometry_msg_count: AtomicU64,
 
     pub t1_process_frustum_thread_running: AtomicBool,
     pub t1_process_frustum_thread_current_image_id: AtomicU64,
@@ -57,11 +58,9 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){
         let paused = status.paused.load(Ordering::Relaxed);
         let shutdown = status.shutdown.load(Ordering::Relaxed);
 
-
-
-
         let t0_ros_thread_running = status.t0_ros_thread_running.load(Ordering::Relaxed);
         let t0_ros_current_image_id = Option::from(status.t0_ros_current_image_id.load(Ordering::Relaxed));
+        let t0_ros_odometry_msg_count = Option::from(status.t0_ros_odometry_msg_count.load(Ordering::Relaxed));
 
         let t1_process_frustum_thread_running = status.t1_process_frustum_thread_running.load(Ordering::Relaxed);
         let t1_process_frustum_thread_current_image_id = Option::from(status.t1_process_frustum_thread_current_image_id.load(Ordering::Relaxed));
@@ -100,12 +99,14 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){
                        "t0_ros",
                        t0_ros_current_image_id,
                        None,
-                       None)
+                       None,
+                       t0_ros_odometry_msg_count)
             .expect("couldnt write status of ros thread");
         check_or_cross(& mut thread_states,
                        t1_process_frustum_thread_running,
                        "t1_frustum",
                        t1_process_frustum_thread_current_image_id,
+                       None,
                        None,
                        None)
             .expect("couldnt write status of process_frustum_thread");
@@ -114,28 +115,32 @@ pub fn status_thread(status: Arc<Status>, stop_token: CancellationToken){
                        "t2_send_f",
                        t2_send_frustum_thread_current_image_id,
                        t2_send_frustum_thread_nr_received_points,
-                       t2_send_frustum_thread_nr_received_nodes)
+                       t2_send_frustum_thread_nr_received_nodes,
+                       None)
             .expect("couldnt write status of send_frustum_thread");
         check_or_cross(& mut thread_states,
                        t3_collect_colorization_data_thread_running,
                        "t3_collect_p",
                        t3_collect_colorization_data_thread_current_image_id,
                        t3_collect_colorization_data_thread_nr_received_points,
-                       t3_collect_colorization_data_thread_nr_received_nodes)
+                       t3_collect_colorization_data_thread_nr_received_nodes,
+                       None)
             .expect("couldnt write status of collect_colorization_data_thread");
         check_or_cross(& mut thread_states,
                        t4_managing_colorization_thread_running,
                        "t4_colorize",
                        t4_managing_colorization_thread_current_image_id,
                        t4_managing_colorization_thread_current_nr_received_points,
-                       t4_managing_colorization_thread_current_nr_received_nodes)
+                       t4_managing_colorization_thread_current_nr_received_nodes,
+                       None)
             .expect("couldnt write status of managing_colorization_thread");
         check_or_cross(& mut thread_states,
                        t5_send_points_thread_running,
                        "t5_send_points",
                        None,
                        t5_send_points_thread_nr_received_points,
-                       t5_send_points_thread_nr_received_nodes)
+                       t5_send_points_thread_nr_received_nodes,
+                       None)
             .expect("couldnt write status of send_points_thread");
 
 
@@ -180,6 +185,7 @@ fn check_or_cross(thread_states: &mut String,
                   thread_image_id:Option<u64>,
                   thread_point_count:Option<u64>,
                   thread_received_nodes:Option<u64>,
+                  thread_received_odometry_msgs:Option<u64>,
 ) -> anyhow::Result<()> {
     const CHECK: &str = "✓";
     const CROSS: &str = "✗";
@@ -214,6 +220,10 @@ fn check_or_cross(thread_states: &mut String,
     if thread_received_nodes.is_some() {
         thread_states.push_str("| Nr. of received nodes: ");
         thread_states.push_str(&thread_received_nodes.unwrap().to_string());
+    }
+    if thread_received_odometry_msgs.is_some(){
+        thread_states.push_str("| Nr. of received odometry messages: ");
+        thread_states.push_str(&thread_received_odometry_msgs.unwrap().to_string());
     }
     Ok(())
 }

@@ -27,6 +27,10 @@ pub struct AppOptions {
     #[clap(long, default_values = &["/Cam1_Image","/Cam2_Image","/Cam3_Image"])]
     pub image_topics: Vec<String>,
 
+    ///ROS Topic where the odometry (positional) data will be published to.
+    #[clap(long, default_value = "/Odometry")]
+    pub odometry_topic: String,
+
     /// Name of the fixed coordinate frame that the lidar points will be
     /// transformed to before sending to the lidarserv server.
     // note: The default should probably be "map" according to REP-105 https://www.ros.org/reps/rep-0105.html
