@@ -116,6 +116,7 @@ async fn update_client_mode(
     codec: PointDataCodec,
     shutdown: Receiver<()>,
 ) -> Result<(), LidarServerError>{
+    debug!("UpdateClient mode");
     write_mode(con, index, codec, shutdown, WriteMode::Update).await
 }
 
@@ -131,19 +132,20 @@ async fn write_mode(
 
     // keep receiving 'InsertPoints' messages, until the connection is closed
     while let Some(msg) = con.read_message_or_eof(&mut shutdown).await? {
-        let data = if let Header::InsertPoints = msg.header {
-            msg.payload
-        } else {
-            let error = "Expected `InsertPoints` message or EOF.";
-            con.write_message(
-                &Header::Error {
-                    message: error.into(),
-                },
-                &[],
-            )
-                .await?;
-            return Err(LidarServerError::Protocol(error.into()));
-        };
+        let data = if (matches!(msg.header, Header::InsertPoints) && matches!(write_mode, WriteMode::Insert))
+            || (matches!(msg.header, Header::UpdatePoints) && matches!(write_mode, WriteMode::Update)){
+                    msg.payload
+                } else {
+                    let error = "Expected `InsertPoints` message or EOF.";
+                    con.write_message(
+                        &Header::Error {
+                            message: error.into(),
+                        },
+                        &[],
+                    )
+                        .await?;
+                    return Err(LidarServerError::Protocol(error.into()));
+                };
 
         // decode las
         let points = match codec.read_points(&data, index.point_layout()) {

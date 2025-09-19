@@ -14,9 +14,7 @@ use crate::{
 };
 use log::info;
 use nalgebra::Point3;
-use pasture_core::containers::{
-    BorrowedBuffer, BorrowedBufferExt, InterleavedBuffer, OwningBuffer, VectorBuffer,
-};
+use pasture_core::containers::{BorrowedBuffer, BorrowedBufferExt, BorrowedMutBufferExt, InterleavedBuffer, OwningBuffer, VectorBuffer};
 use std::{
     collections::{HashMap, hash_map::Entry},
     sync::{Arc, Condvar, Mutex},
@@ -521,19 +519,12 @@ impl OctreeWriter {
         self.write(points, WritingType::Update);
     }
     fn write(&mut self, points: &VectorBuffer, writing_type:WritingType) {
-        match writing_type {
-            WritingType::Insert => {
-                //todo!("DO insert points into the octree")
-            }
-            WritingType::Update => {
-                //todo!("DO update points in the octree")
-            }
-        }
         let nr_points = points.len() as f64;
 
         struct Wct<'a> {
             points: &'a VectorBuffer,
             node_hierarchy: GridHierarchy,
+            writing_type: WritingType
         }
 
         impl WithComponentTypeOnce for Wct<'_> {
@@ -543,32 +534,35 @@ impl OctreeWriter {
                 let Self {
                     points,
                     node_hierarchy,
+                    writing_type,
                 } = self;
 
                 let mut points_by_cell: HashMap<LeveledGridCell, VectorBuffer> = HashMap::new();
 
                 let grid = node_hierarchy.level::<C>(LodLevel::base());
 
-                let positions =
-                    points.view_attribute::<C::PasturePrimitive>(&C::position_attribute());
-
-                for rd in 0..points.len() {
-                    let position = C::pasture_to_position(positions.at(rd));
-                    let cell = grid.cell_at(position);
-                    let node = LeveledGridCell {
-                        lod: LodLevel::base(),
-                        pos: cell,
-                    };
-                    let nr_cells = points_by_cell.len();
-                    let cell_points = points_by_cell.entry(node).or_insert_with(|| {
-                        let capacity = (points.len() / (nr_cells + 1) * 5).min(points.len());
-                        VectorBuffer::with_capacity(capacity, points.point_layout().clone())
-                    });
-                    // safety: both point buffers have the same point layout.
-                    unsafe {cell_points.push_points(points.get_point_ref(rd)) };
+                match writing_type {
+                    WritingType::Insert => {}
+                    WritingType::Update => {}
                 }
+                let positions = points.view_attribute::<C::PasturePrimitive>(&C::position_attribute());
+                    for rd in 0..points.len() {
+                        let position = C::pasture_to_position(positions.at(rd));
+                        let cell = grid.cell_at(position);
+                        let node = LeveledGridCell {
+                            lod: LodLevel::base(),
+                            pos: cell,
+                        };
+                        let nr_cells = points_by_cell.len();
+                        let cell_points = points_by_cell.entry(node).or_insert_with(|| {
+                            let capacity = (points.len() / (nr_cells + 1) * 5).min(points.len());
+                            VectorBuffer::with_capacity(capacity, points.point_layout().clone())
+                        });
+                        // safety: both point buffers have the same point layout.
+                        unsafe {cell_points.push_points(points.get_point_ref(rd)) };
+                    }
 
-                points_by_cell
+                    points_by_cell
             }
         }
 
@@ -576,6 +570,7 @@ impl OctreeWriter {
         let points_by_cell = Wct {
             points,
             node_hierarchy: self.node_hierarchy,
+            writing_type,
         }
             .for_layout_once(&layout);
 

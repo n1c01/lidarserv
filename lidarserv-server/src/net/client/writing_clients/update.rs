@@ -107,7 +107,7 @@ impl Update for WriteClient{
 
     async fn update_raw_point_data(&mut self, data: &[u8]) -> Result<(), LidarServerError> {
         self.connection
-            .write_message(&Header::InsertPoints, data)
+            .write_message(&Header::UpdatePoints, data)
             .await?;
 
         Ok(())
