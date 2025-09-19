@@ -1,7 +1,9 @@
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
+use las::Color;
 use log::debug;
 use pasture_core::containers::{BorrowedBuffer, VectorBuffer};
+use pasture_core::layout::attributes::{COLOR_RGB, POSITION_3D};
 use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
 use lidarserv_server::net::client::writing_clients::write::{Connect, WriteClient};
@@ -34,7 +36,23 @@ pub async fn thread_5_send_points(
                 continue;
             }
         };
+        let mut color_raw: Vec<u8> = vec![0; COLOR_RGB.size() as usize];
+
+        /*
+        for i in 0..colorized_points_vector.len() {
+            BorrowedBuffer::get_attribute(&colorized_points_vector, &COLOR_RGB, i, &mut color_raw);
+            let r = u16::from_le_bytes(color_raw[0..2].try_into().unwrap());
+            let g = u16::from_le_bytes(color_raw[2..4].try_into().unwrap());
+            let b = u16::from_le_bytes(color_raw[4..6].try_into().unwrap());
+            //todo handle previous colors
+            let color = Color::new(r, g, b);
+            debug!("index: {:?}, point color: {:?}", i, color);
+        }
+         */
+
         debug!("Send Points Thread: storing points on server");
+
+
         update_client.update_points_global_coordinates (&colorized_points_vector).await?
         // todo check if global coordinates is right
         
