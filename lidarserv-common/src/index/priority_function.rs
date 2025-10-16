@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use crate::geometry::grid::LeveledGridCell;
 
-use super::writer::InsertionTask;
+use super::writer::PointsTask;
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum TaskPriorityFunction {
@@ -67,12 +67,12 @@ impl TaskPriorityFunction {
     pub(super) fn cmp(
         &self,
         cell_1: &LeveledGridCell,
-        task_1: &InsertionTask,
+        task_1: &PointsTask,
         cell_2: &LeveledGridCell,
-        task_2: &InsertionTask,
+        task_2: &PointsTask,
     ) -> Ordering {
         match self {
-            TaskPriorityFunction::NrPoints => task_1.points.len().cmp(&task_2.points.len()),
+            TaskPriorityFunction::NrPoints => task_1.insertion_points.len().cmp(&task_2.insertion_points.len()),
             TaskPriorityFunction::Lod => (cell_1.lod, u32::MAX - task_1.created_generation)
                 .cmp(&(cell_2.lod, u32::MAX - task_2.created_generation)),
             TaskPriorityFunction::Cleanup => cell_1.lod.cmp(&cell_2.lod).reverse(),
@@ -83,25 +83,25 @@ impl TaskPriorityFunction {
             }
             TaskPriorityFunction::NrPointsWeightedByTaskAge => {
                 let base = max(task_1.created_generation, task_2.created_generation);
-                let l = task_1.points.len() as f64
+                let l = task_1.insertion_points.len() as f64
                     * 2.0_f64.powi((base - task_1.created_generation) as i32);
-                let r = task_2.points.len() as f64
+                let r = task_2.insertion_points.len() as f64
                     * 2.0_f64.powi((base - task_2.created_generation) as i32);
                 l.partial_cmp(&r).unwrap_or_else(|| unreachable!())
             }
             TaskPriorityFunction::NrPointsWeightedByOldestPoint => {
                 let base = max(task_1.min_generation, task_2.min_generation);
-                let l = task_1.points.len() as f64
+                let l = task_1.insertion_points.len() as f64
                     * 2.0_f64.powi((base - task_1.min_generation) as i32);
-                let r = task_2.points.len() as f64
+                let r = task_2.insertion_points.len() as f64
                     * 2.0_f64.powi((base - task_2.min_generation) as i32);
                 l.partial_cmp(&r).unwrap_or_else(|| unreachable!())
             }
             TaskPriorityFunction::NrPointsWeightedByNegNewestPoint => {
                 let base = max(task_1.max_generation, task_2.max_generation);
-                let l = task_1.points.len() as f64
+                let l = task_1.insertion_points.len() as f64
                     * 2.0_f64.powi((base - task_1.max_generation) as i32);
-                let r = task_2.points.len() as f64
+                let r = task_2.insertion_points.len() as f64
                     * 2.0_f64.powi((base - task_2.max_generation) as i32);
                 l.partial_cmp(&r).unwrap_or_else(|| unreachable!())
             }

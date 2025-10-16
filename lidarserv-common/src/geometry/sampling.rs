@@ -40,6 +40,10 @@ pub trait Sampling {
 
     fn insert_multi(&mut self, points: &[VectorBuffer]);
 
+    fn update(&mut self, points: &VectorBuffer);
+
+    fn update_multi(&mut self, points: &[VectorBuffer]);
+
     /// Returns a copy of the points in this node.
     /// (All points - both accepted and bogus!)
     fn clone_points(&self) -> VectorBuffer;
@@ -250,6 +254,7 @@ impl<C: Component> Sampling for GridCenterSampling<C> {
                 match self.occupation.entry(cell) {
                     Entry::Occupied(mut e) => {
                         let cur_dist_to_center = e.get().distance_to_center;
+
                         if dist_to_center < cur_dist_to_center {
                             // CASE 1: new point is closer to center.
                             //  - accept new point
@@ -299,6 +304,103 @@ impl<C: Component> Sampling for GridCenterSampling<C> {
                         wr_accept += 1;
                         wr_reject += 1;
                         self.dirty = true;
+                    }
+                }
+            }
+        }
+    }
+
+    fn update(&mut self, points: &VectorBuffer) {
+        self.update_multi(slice::from_ref(points))
+    }
+
+    fn update_multi(&mut self, multi_points: &[VectorBuffer]) {
+        if multi_points.is_empty() {
+            return;
+        }
+        for points in multi_points {
+            assert_eq!(
+                points.point_layout(),
+                self.points.point_layout(),
+                "Incompatible point layout"
+            );
+        }
+        let position_attr = multi_points
+            .first()
+            .expect("just tested for emptines")
+            .point_layout()
+            .get_attribute(&C::position_attribute())
+            .expect("Missing position attribute")
+            .clone();
+
+        // safe indexes
+        let point_index_size = self.points.len();
+        let cell_point_index_size = self.occupation.len();
+
+        // update points
+        for points in multi_points {
+            for rd in 0..points.len() {
+                let bytes_update_point = points.get_point_ref(rd);
+
+                // get position
+                let update_position = {
+                    let bytes_position = &bytes_update_point[position_attr.byte_range_within_point()];
+                    let mut coord = Vector3::zeros();
+                    bytemuck::cast_slice_mut::<Vector3<C>, u8>(slice::from_mut(&mut coord))
+                        .copy_from_slice(bytes_position);
+                    Point3::from(coord)
+                };
+
+                // get grid cell
+                let cell = self.grid.cell_at(update_position);
+
+                // accept or reject
+                match self.occupation.entry(cell) {
+                    Entry::Occupied(e) => {
+                        let cell_point_index = e.get().index;
+                        let bytes_old_point = points.get_point_ref(cell_point_index);
+
+                        // get position
+                        let old_position = {
+                            let bytes_position = &bytes_old_point[position_attr.byte_range_within_point()];
+                            let mut coord = Vector3::zeros();
+                            bytemuck::cast_slice_mut::<Vector3<C>, u8>(slice::from_mut(&mut coord))
+                                .copy_from_slice(bytes_position);
+                            Point3::from(coord)
+                        };
+
+                        if old_position == update_position {
+                            // CASE 1: update point is the point in cell.
+                            //  - update the point
+                            let bytes_update = self.points.get_point_mut(cell_point_index);
+                            bytes_update.copy_from_slice(bytes_update_point);
+                        } else {
+                            // CASE 2: update point is not the point in cell.
+                            //  - search in bogus points for the point.
+                            //todo!("search in bogus points for the point.");
+
+                            for bogus_index in cell_point_index_size..point_index_size{
+                                let bytes_bogus_point = points.get_point_ref(bogus_index);
+
+                                // get position
+                                let bogus_position = {
+                                    let bytes_position = &bytes_bogus_point[position_attr.byte_range_within_point()];
+                                    let mut coord = Vector3::zeros();
+                                    bytemuck::cast_slice_mut::<Vector3<C>, u8>(slice::from_mut(&mut coord))
+                                        .copy_from_slice(bytes_position);
+                                    Point3::from(coord)
+                                };
+                                if bogus_position == update_position{
+                                    let bytes_update = self.points.get_point_mut(bogus_index);
+                                    bytes_update.copy_from_slice(bytes_update_point);
+                                }
+                            }
+                        }
+                    }
+                    Entry::Vacant(_) => {
+                        // CASE 3: first point in a new cell
+                        //  - handle error as point cannot be updated.
+                        warn!("Point cannot be updated, because base node is not found")
                     }
                 }
             }

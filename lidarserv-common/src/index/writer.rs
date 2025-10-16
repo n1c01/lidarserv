@@ -14,7 +14,7 @@ use crate::{
 };
 use log::info;
 use nalgebra::Point3;
-use pasture_core::containers::{BorrowedBuffer, BorrowedBufferExt, BorrowedMutBufferExt, InterleavedBuffer, OwningBuffer, VectorBuffer};
+use pasture_core::containers::{BorrowedBuffer, BorrowedBufferExt, InterleavedBuffer, OwningBuffer, VectorBuffer};
 use std::{
     collections::{HashMap, hash_map::Entry},
     sync::{Arc, Condvar, Mutex},
@@ -24,9 +24,13 @@ use std::{
 use thiserror::Error;
 use tracy_client::{plot, secondary_frame_mark, span};
 
-pub(super) struct InsertionTask {
+/// A task that can be used to insert points into the octree and update points in the octree.
+pub(super) struct PointsTask {
     /// Points to insert in the node
-    pub points: Vec<VectorBuffer>,
+    pub insertion_points: Vec<VectorBuffer>,
+    
+    /// Points to be updated in the node
+    pub update_points: Vec<VectorBuffer>,
 
     /// generation of the newest point
     pub max_generation: u32,
@@ -43,7 +47,7 @@ struct LockedTask {
 }
 
 struct Inboxes {
-    tasks: HashMap<LeveledGridCell, InsertionTask>,
+    tasks: HashMap<LeveledGridCell, PointsTask>,
     locked: HashMap<LeveledGridCell, LockedTask>,
     drain: bool,
     waiter: Arc<Condvar>,
@@ -68,7 +72,7 @@ enum IndexingThreadError {
     #[error("Error while writing cache to disk: {0}")]
     CacheCleanup(#[from] CacheCleanupError<LeveledGridCell, LazyNode, PointIoError>),
 }
-
+#[derive(Clone)]
 enum WritingType{
     Insert,
     Update,
@@ -101,34 +105,57 @@ impl Inboxes {
         }
     }
 
+    ///Add a task to the Inbox
     fn add(
         &mut self,
         node: LeveledGridCell,
-        add_points: VectorBuffer,
+        points: VectorBuffer,
         min_generation: u32,
         max_generation: u32,
+        writing_type: WritingType,
     ) {
         if node.lod == LodLevel::base() {
-            self.current_gen_points += add_points.len() as u32
+            self.current_gen_points += points.len() as u32
         }
         match self.tasks.entry(node) {
             Entry::Occupied(mut entry) => {
-                entry.get_mut().points.push(add_points);
+                match writing_type {
+                    WritingType::Insert => {
+                        entry.get_mut().insertion_points.push(points);
+                    },
+                    WritingType::Update => {
+                        entry.get_mut().update_points.push(points);
+                    },
+                }
                 entry.get_mut().max_generation = max_generation;
             }
             Entry::Vacant(entry) => {
-                entry.insert(InsertionTask {
-                    points: vec![add_points],
-                    min_generation,
-                    max_generation,
-                    created_generation: self.current_gen,
-                });
+                match writing_type {
+                    WritingType::Insert => {
+                        entry.insert(PointsTask {
+                            insertion_points: vec![points],
+                            min_generation,
+                            max_generation,
+                            created_generation: self.current_gen,
+                            update_points: vec![],
+                        });
+                    }
+                    WritingType::Update => {
+                        entry.insert(PointsTask {
+                            insertion_points: vec![],
+                            min_generation,
+                            max_generation,
+                            created_generation: self.current_gen,
+                            update_points: vec![points],
+                        });
+                    }
+                }
                 self.waiter.notify_one();
             }
         }
     }
 
-    pub fn take_and_lock(&mut self) -> Option<(LeveledGridCell, InsertionTask)> {
+    pub fn take_and_lock(&mut self) -> Option<(LeveledGridCell, PointsTask)> {
         let node_id = self
             .tasks
             .iter()
@@ -239,13 +266,14 @@ impl OctreeWorkerThread {
                 lock.unlock(node_id);
 
                 if let Some(tasks) = child_tasks {
-                    for (child_id, child_points) in tasks {
-                        if !child_points.is_empty() {
+                    for (child_id, child_insertion_points) in tasks {
+                        if !child_insertion_points.is_empty() {
                             lock.add(
                                 child_id,
-                                child_points,
+                                child_insertion_points,
                                 task_min_generation,
                                 task_max_generation,
+                                WritingType::Insert,
                             );
                         }
                     }
@@ -282,13 +310,14 @@ impl OctreeWorkerThread {
     fn writer_task(
         &self,
         node_id: LeveledGridCell,
-        task: InsertionTask,
+        task: PointsTask,
         is_max_lod: bool,
     ) -> Result<(Option<[(LeveledGridCell, VectorBuffer); 8]>, bool), IndexingThreadError> {
         // update attribute indexes
-        for points in &task.points {
+        for points in &task.insertion_points {
             self.inner.attribute_index.index(node_id, points);
         }
+
 
         // get points
         let _span = span!("OctreeWorkerThread::writer_task - get points");
@@ -346,7 +375,8 @@ impl OctreeWorkerThread {
         // insert new points
         let _span = span!("OctreeWorkerThread::writer_task - insert new points");
         node.reset_dirty();
-        node.insert_multi(&task.points);
+        node.insert_multi(&task.insertion_points);
+        node.update_multi(&task.update_points);
         let should_notify_clients = node.is_dirty();
 
         // only create child tasks, if we have a considerable amount of points.
@@ -522,7 +552,8 @@ impl OctreeWriter {
         let nr_points = points.len() as f64;
 
         struct Wct<'a> {
-            points: &'a VectorBuffer,
+            insertion_points: &'a VectorBuffer,
+            update_points: &'a VectorBuffer,
             node_hierarchy: GridHierarchy,
             writing_type: WritingType
         }
@@ -532,7 +563,8 @@ impl OctreeWriter {
 
             fn run_once<C: Component>(self) -> Self::Output {
                 let Self {
-                    points,
+                    insertion_points,
+                    update_points,
                     node_hierarchy,
                     writing_type,
                 } = self;
@@ -542,42 +574,65 @@ impl OctreeWriter {
                 let grid = node_hierarchy.level::<C>(LodLevel::base());
 
                 match writing_type {
-                    WritingType::Insert => {}
-                    WritingType::Update => {}
-                }
-                let positions = points.view_attribute::<C::PasturePrimitive>(&C::position_attribute());
-                    for rd in 0..points.len() {
-                        let position = C::pasture_to_position(positions.at(rd));
-                        let cell = grid.cell_at(position);
-                        let node = LeveledGridCell {
-                            lod: LodLevel::base(),
-                            pos: cell,
-                        };
-                        let nr_cells = points_by_cell.len();
-                        let cell_points = points_by_cell.entry(node).or_insert_with(|| {
-                            let capacity = (points.len() / (nr_cells + 1) * 5).min(points.len());
-                            VectorBuffer::with_capacity(capacity, points.point_layout().clone())
-                        });
-                        // safety: both point buffers have the same point layout.
-                        unsafe {cell_points.push_points(points.get_point_ref(rd)) };
+                    WritingType::Insert => {
+                        let positions = insertion_points.view_attribute::<C::PasturePrimitive>(&C::position_attribute());
+                        for rd in 0..insertion_points.len() {
+                            let position = C::pasture_to_position(positions.at(rd));
+                            let cell = grid.cell_at(position);
+                            let node = LeveledGridCell {
+                                lod: LodLevel::base(),
+                                pos: cell,
+                            };
+                            let nr_cells = points_by_cell.len();
+                            let cell_points = points_by_cell.entry(node).or_insert_with(|| {
+                                let capacity = (insertion_points.len() / (nr_cells + 1) * 5).min(insertion_points.len());
+                                VectorBuffer::with_capacity(capacity, insertion_points.point_layout().clone())
+                            });
+                            // safety: both point buffers have the same point layout.
+                            unsafe {
+                                cell_points.push_points(insertion_points.get_point_ref(rd))
+                            };
+                        }
                     }
-
-                    points_by_cell
+                    WritingType::Update => {
+                        let positions = update_points.view_attribute::<C::PasturePrimitive>(&C::position_attribute());
+                        for rd in 0..update_points.len() {
+                            let position = C::pasture_to_position(positions.at(rd));
+                            let cell = grid.cell_at(position);
+                            let node = LeveledGridCell {
+                                lod: LodLevel::base(),
+                                pos: cell,
+                            };
+                            let nr_cells = points_by_cell.len();
+                            let cell_points = points_by_cell.entry(node)
+                                .or_insert_with(|| {
+                                let capacity = (update_points.len() / (nr_cells + 1) * 5).min(update_points.len());
+                                VectorBuffer::with_capacity(capacity, update_points.point_layout().clone())
+                            });
+                            // safety: both point buffers have the same point layout.
+                            unsafe {
+                                cell_points.push_points(update_points.get_point_ref(rd))
+                            };
+                        }
+                    }
+                }
+                points_by_cell
             }
         }
 
         let layout = points.point_layout().clone();
         let points_by_cell = Wct {
-            points,
+            insertion_points: points,
+            update_points: points,
             node_hierarchy: self.node_hierarchy,
-            writing_type,
+            writing_type: writing_type.clone(),
         }
             .for_layout_once(&layout);
 
         let mut lock = self.inboxes.lock().unwrap();
         let generation = lock.current_gen;
         for (cell, points) in points_by_cell {
-            lock.add(cell, points, generation, generation);
+            lock.add(cell, points, generation, generation, writing_type.clone());
         }
         lock.metrics.metric(MetricName::NrPointsAdded, nr_points);
         lock.maybe_next_generation();
@@ -610,9 +665,9 @@ impl Drop for OctreeWriter {
     }
 }
 
-impl InsertionTask {
+impl PointsTask {
     #[inline]
     pub fn nr_points(&self) -> usize {
-        self.points.iter().map(|buf| buf.len()).sum::<usize>()
+        self.insertion_points.iter().map(|buf| buf.len()).sum::<usize>()
     }
 }
