@@ -92,7 +92,7 @@ pub async fn thread_2_send_frustum(
                     //TODO Hashmap mit node id und vectorbuffer um zwischenwerte zu vergleiche viewer main
                 }
                 PartialResult::Complete => {
-                    //debug!("hashmap keys of image with id {:?} : {:?}", current_image_id, nodes_hashmap.keys());
+                    debug!("hashmap keys of image with id {:?} : {:?}", current_image_id, nodes_hashmap.keys());
                     nodes_hashmap.iter().for_each(|(_node_id, points)| {
                         match point_data_tx.send(ImageIdAndVectorBuffer {
                             image_id: current_image_id,

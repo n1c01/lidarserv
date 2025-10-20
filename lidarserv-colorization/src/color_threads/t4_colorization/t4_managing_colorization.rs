@@ -49,10 +49,9 @@ pub(crate) fn thread_4_managing_colorization(
                                                     colorization_data.image_data.width,
                                                     colorization_data.image_data.height),
         };
-        debug!("thread_4_managing_colorization: colorization started");
+        debug!("point data, before colorization: {:?}",colorization_data.point_data.len());
         let colorized_points = match point_cloud_colorizer.colorize(colorization_data.point_data){
             Ok(data) => {
-                debug!("thread_4_managing_colorization: colorization done");
                 data
             }
             Err(error) => {
