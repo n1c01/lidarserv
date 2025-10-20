@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::cli::AppOptions;
 use crate::color_threads::status::Status;
 use crate::color_threads::{ImageIdAndFrustum, ImageIdAndVectorBuffer};
@@ -63,6 +64,8 @@ pub async fn thread_2_send_frustum(
                 },
             )
             .await?;
+
+        let mut nodes_hashmap = HashMap::new();
         //loop to receive all the parts of the view frustum query.
         loop {
             let update = client
@@ -70,36 +73,43 @@ pub async fn thread_2_send_frustum(
                 .receive_update_global_coordinates(&mut shutdown_rx)
                 .await?;
             match update {
-                PartialResult::DeleteNode(_) => {
-                    //TODO delete from hashmap
-                    warn!("Received unexpected DeleteNode message.")
+                PartialResult::DeleteNode(delete) => {
+                    status
+                        .t2_send_frustum_thread_nr_received_nodes
+                        .fetch_sub(1, Ordering::Relaxed);
+
+                    nodes_hashmap.remove(&delete);
                 },
                 PartialResult::UpdateNode(update) => {
-                    //TODO Hashmap mit node id und vectorbuffer um zwischenwerte zu vergleiche viewer main
-                    //TODO add to hashmap
-                    //debug!("Send Frustum Thread: image_id {:?}: Received UpdateNode message, sending points", current_image_id);
                     status
                         .t2_send_frustum_thread_nr_received_points
-                        .fetch_add(update.points.len() as u64, Ordering::Relaxed);
+                        .fetch_add(update.clone().points.len() as u64, Ordering::Relaxed);
                     status
                         .t2_send_frustum_thread_nr_received_nodes
                         .fetch_add(1, Ordering::Relaxed);
-                    match point_data_tx.send(ImageIdAndVectorBuffer {
-                        image_id: current_image_id,
-                        vector_buffer: update.points,
-                        image_complete: false,
-                    }) {
-                        Ok(_) => {
-                            //debug!("Send Frustum Thread: image_id {:?}: points sent", current_image_id);
-                        }
-                        Err(error) => {
-                            warn!("image_id {:?}: error sending points: {:?}", current_image_id, error);
-                            return Ok(());
-                        }
-                    }
-                    //debug!("Send Frustum Thread: image_id {:?}: points sent fully done", current_image_id);
+
+                    nodes_hashmap.insert(update.node_id, update.points);
+                    //TODO Hashmap mit node id und vectorbuffer um zwischenwerte zu vergleiche viewer main
                 }
                 PartialResult::Complete => {
+                    //debug!("hashmap keys of image with id {:?} : {:?}", current_image_id, nodes_hashmap.keys());
+                    nodes_hashmap.iter().for_each(|(_node_id, points)| {
+                        match point_data_tx.send(ImageIdAndVectorBuffer {
+                            image_id: current_image_id,
+                            vector_buffer: points.clone(),
+                            image_complete: false,
+                        }) {
+                            Ok(_) => {
+                                //debug!("Send Frustum Thread: image_id {:?}: points sent", current_image_id);
+                            }
+                            Err(error) => {
+                                warn!("image_id {:?}: error sending points: {:?}", current_image_id, error);
+                                return;
+                            }
+                        }
+                    });
+
+
                     let layout = PointLayout::default(); // empty layout
                     debug!("image_id {:?}: Received complete message, sending image complete buffer",current_image_id);
                     point_data_tx.send(ImageIdAndVectorBuffer {
