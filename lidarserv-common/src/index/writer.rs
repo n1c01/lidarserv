@@ -12,7 +12,7 @@ use crate::{
     io::PointIoError,
     lru_cache::pager::CacheCleanupError,
 };
-use log::info;
+use log::{debug, info};
 use nalgebra::Point3;
 use pasture_core::containers::{BorrowedBuffer, BorrowedBufferExt, InterleavedBuffer, OwningBuffer, VectorBuffer};
 use std::{
@@ -372,10 +372,12 @@ impl OctreeWorkerThread {
         drop(_span);
         */
 
-        // insert new points
+        // handle new points
         let _span = span!("OctreeWorkerThread::writer_task - insert new points");
         node.reset_dirty();
+        debug!("OctreeWorkerThread::writer_task - calling insert_multi() on node:");
         node.insert_multi(&task.insertion_points);
+        debug!("OctreeWorkerThread::writer_task - calling update_multi() on node:");
         node.update_multi(&task.update_points);
         let should_notify_clients = node.is_dirty();
 
@@ -610,6 +612,7 @@ impl OctreeWriter {
                                 let capacity = (update_points.len() / (nr_cells + 1) * 5).min(update_points.len());
                                 VectorBuffer::with_capacity(capacity, update_points.point_layout().clone())
                             });
+                            //debug!("pushing points to index that doesnt exist??? ");
                             // safety: both point buffers have the same point layout.
                             unsafe {
                                 cell_points.push_points(update_points.get_point_ref(rd))

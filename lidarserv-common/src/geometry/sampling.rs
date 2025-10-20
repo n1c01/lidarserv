@@ -3,7 +3,7 @@ use std::{
     slice,
 };
 
-use log::warn;
+use log::{debug, warn};
 use nalgebra::{Point3, Vector3};
 use pasture_core::{
     containers::{
@@ -341,6 +341,7 @@ impl<C: Component> Sampling for GridCenterSampling<C> {
         drop(_span);
 
         // update points
+        debug!("UPDATE MULTI: start updating points");
         for points in multi_points {
             for rd in 0..points.len() {
                 let _span = span!("UPDATE MULTI: checking one point (for updating)");
@@ -375,11 +376,15 @@ impl<C: Component> Sampling for GridCenterSampling<C> {
                         };
 
                         if old_position == update_position {
+                            debug!("UPDATE MULTI: CASE1 update point is the point in cell.");
                             // CASE 1: update point is the point in cell.
                             //  - update the point
+
                             let bytes_update = self.points.get_point_mut(cell_point_index);
                             bytes_update.copy_from_slice(bytes_update_point);
                         } else {
+                            //TODO: 20.10.2025: Handle Case 2: correctly
+                            //debug!("UPDATE MULTI: CASE2 update point is not the point in cell.");
                             // CASE 2: update point is not the point in cell.
                             //  - search in bogus points for the point.
 
@@ -397,6 +402,7 @@ impl<C: Component> Sampling for GridCenterSampling<C> {
                                 if bogus_position == update_position{
                                     let bytes_update = self.points.get_point_mut(bogus_index);
                                     bytes_update.copy_from_slice(bytes_update_point);
+                                    continue;
                                 }
                             }
                         }
