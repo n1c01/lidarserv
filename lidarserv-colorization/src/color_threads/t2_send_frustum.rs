@@ -28,6 +28,7 @@ pub async fn thread_2_send_frustum(
     let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
     //loop to wait for new frustums to query.
     let mut client = ViewerClient::connect((args.host.as_str(), args.port), &mut shutdown_rx).await?;
+    let _inital_bounding_box = client.read.initial_bounding_box();
     loop {
         //todo! move client outside the loop, when hashmap is working
         //handle stop signal
