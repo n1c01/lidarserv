@@ -3,7 +3,7 @@ use crate::color_threads::status::Status;
 use crate::color_threads::{t4_colorization::ColorizationData, ImageData, ImageIdAndVectorBuffer};
 use log::{debug, error};
 use pasture_core::containers::BorrowedBuffer;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
@@ -56,7 +56,8 @@ pub(crate) fn thread_3_collect_colorization_data(
         };
 
         //receive points from the points_rx channel
-        let image_id_and_vec_buff = match points_rx.recv_timeout(Duration::new(1, 0)) {
+        let mut image_id_and_vec_buff_queue:VecDeque<ImageIdAndVectorBuffer> = VecDeque::new();
+        match points_rx.recv_timeout(Duration::new(1, 0)) {
             Ok(data) => {
                 if data.image_complete {
                     //remove picture data once all the points are received.
@@ -82,7 +83,7 @@ pub(crate) fn thread_3_collect_colorization_data(
                     } else {
                         received_points_per_image.insert(data.image_id, data.vector_buffer.len() as u64);
                     }
-                    data
+                    image_id_and_vec_buff_queue.push_front(data)
                 }
             }
             Err(_) => {
@@ -90,16 +91,21 @@ pub(crate) fn thread_3_collect_colorization_data(
             }
         };
 
-        //todo!("fix this seems to be not reachable");
-        debug!("collect_colorization_data_thread: received points");
-        let image_data = match image_data_map.get(&image_id_and_vec_buff.image_id) {
+        let image_id_and_vec_buff_data = match image_id_and_vec_buff_queue.pop_front(){
             None => {
-                debug!("collect_colorization_data_thread: image with id: {:?} not in hashmap",&image_id_and_vec_buff.image_id);
-                return Err(anyhow::anyhow!("collect_colorization_data_thread: image_id not found"));
-                //todo handle problem by using a queue pop vecbuff with cloud checking if image is ready else push again to the end.
+                continue;
             }
-            Some(data) => data ,
+            Some(data) => {data}
+            };
+
+        let image_data = match image_data_map.get(&image_id_and_vec_buff_data.image_id) {
+            None => {
+                debug!("collect_colorization_data_thread: image with id: {:?} not in hashmap --> waiting for image",&image_id_and_vec_buff_data.image_id);
+                continue;
+            }
+            Some(data) => data,
         };
+
 
         //debug!("collect_colorization_data_thread: state of hashmap {:?}",image_data_map );
 
@@ -109,7 +115,7 @@ pub(crate) fn thread_3_collect_colorization_data(
         let image_data = image_data.clone();
         let colorization_data = ColorizationData {
             image_data,
-            point_data: image_id_and_vec_buff.vector_buffer,
+            point_data: image_id_and_vec_buff_data.vector_buffer,
         };
 
         //send colorization data to the colorization_data_tx channel
