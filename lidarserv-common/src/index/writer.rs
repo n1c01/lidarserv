@@ -595,6 +595,7 @@ impl OctreeWriter {
                         }
                     }
                     WritingType::Update => {
+                        let _span = span!("Wct::run_once - update");
                         let positions = update_points.view_attribute::<C::PasturePrimitive>(&C::position_attribute());
                         for rd in 0..update_points.len() {
                             let position = C::pasture_to_position(positions.at(rd));
@@ -614,6 +615,7 @@ impl OctreeWriter {
                                 cell_points.push_points(update_points.get_point_ref(rd))
                             };
                         }
+                        drop(_span);
                     }
                 }
                 points_by_cell

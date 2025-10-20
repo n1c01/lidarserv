@@ -12,7 +12,7 @@ use pasture_core::{
     },
     layout::PointLayout,
 };
-
+use tracy_client::span;
 use crate::geometry::position::WithComponentTypeOnce;
 
 use super::{
@@ -315,6 +315,7 @@ impl<C: Component> Sampling for GridCenterSampling<C> {
     }
 
     fn update_multi(&mut self, multi_points: &[VectorBuffer]) {
+        let _span = span!("UPDATE MULTI: start");
         if multi_points.is_empty() {
             return;
         }
@@ -337,9 +338,13 @@ impl<C: Component> Sampling for GridCenterSampling<C> {
         let point_index_size = self.points.len();
         let cell_point_index_size = self.occupation.len();
 
+        drop(_span);
+
         // update points
         for points in multi_points {
             for rd in 0..points.len() {
+                let _span = span!("UPDATE MULTI: checking one point (for updating)");
+
                 let bytes_update_point = points.get_point_ref(rd);
 
                 // get position
@@ -377,7 +382,6 @@ impl<C: Component> Sampling for GridCenterSampling<C> {
                         } else {
                             // CASE 2: update point is not the point in cell.
                             //  - search in bogus points for the point.
-                            //todo!("search in bogus points for the point.");
 
                             for bogus_index in cell_point_index_size..point_index_size{
                                 let bytes_bogus_point = points.get_point_ref(bogus_index);
@@ -403,6 +407,7 @@ impl<C: Component> Sampling for GridCenterSampling<C> {
                         warn!("Point cannot be updated, because base node is not found")
                     }
                 }
+                drop(_span);
             }
         }
     }
