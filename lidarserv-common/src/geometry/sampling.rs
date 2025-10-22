@@ -227,12 +227,14 @@ impl<C: Component> Sampling for GridCenterSampling<C> {
         // resize point buffer
         let mut wr_reject = self.points.len();
         let mut wr_accept = self.occupation.len();
+        debug!("insert multi: wr_reject: {:?}, wr_accept: {:?}", wr_reject, wr_accept);
         let new_size = self.points.len() + total_nr_points;
         self.points.resize(new_size);
 
         // insert points
         for points in multi_points {
             for rd in 0..points.len() {
+                assert!(points.len() > rd);
                 let bytes_point = points.get_point_ref(rd);
 
                 // get position
@@ -341,9 +343,13 @@ impl<C: Component> Sampling for GridCenterSampling<C> {
         drop(_span);
 
         // update points
-        debug!("UPDATE MULTI: start updating points");
+        debug!("UPDATE MULTI: start updating points: point index size: {:?}", point_index_size);
+        debug!("UPDATE MULTI: start updating points: cell point index size: {:?}", cell_point_index_size);
+        debug!("UPDATE MULTI: start updating points: multi points size: {:?}", multi_points.len());
         for points in multi_points {
+            debug!("UPDATE MULTI: start updating points (within Multi Vector buffer)");
             for rd in 0..points.len() {
+                debug!("UPDATE MULTI: start updating points (within Vector buffer)(within Multi Vector buffer) index in vecbuf: {:?}", rd);
                 let _span = span!("UPDATE MULTI: checking one point (for updating)");
 
                 let bytes_update_point = points.get_point_ref(rd);
@@ -364,6 +370,7 @@ impl<C: Component> Sampling for GridCenterSampling<C> {
                 match self.occupation.entry(cell) {
                     Entry::Occupied(e) => {
                         let cell_point_index = e.get().index;
+                        assert!(points.len() > cell_point_index, "FUNKTIONEIRT NICHT weil point len > cell point index net stimmt ([{:?}] > [{:?}] )", points.len(), cell_point_index);
                         let bytes_old_point = points.get_point_ref(cell_point_index);
 
                         // get position
@@ -384,11 +391,13 @@ impl<C: Component> Sampling for GridCenterSampling<C> {
                             bytes_update.copy_from_slice(bytes_update_point);
                         } else {
                             //TODO: 20.10.2025: Handle Case 2: correctly
-                            //debug!("UPDATE MULTI: CASE2 update point is not the point in cell.");
+                            debug!("UPDATE MULTI: CASE2 update point is not the point in cell. \n cell_point_index_size: {:?}..point_index_size: {:?}",cell_point_index_size, point_index_size );
                             // CASE 2: update point is not the point in cell.
                             //  - search in bogus points for the point.
 
                             for bogus_index in cell_point_index_size..point_index_size{
+                                debug!("UPDATE MULTI: CASE2 searching through bogus points");
+                                assert!(points.len() > bogus_index);
                                 let bytes_bogus_point = points.get_point_ref(bogus_index);
 
                                 // get position
@@ -402,6 +411,7 @@ impl<C: Component> Sampling for GridCenterSampling<C> {
                                 if bogus_position == update_position{
                                     let bytes_update = self.points.get_point_mut(bogus_index);
                                     bytes_update.copy_from_slice(bytes_update_point);
+                                    debug!("UPDATE MULTI: CASE2 update point is not the point in cell. Found point in bogus points.");
                                     continue;
                                 }
                             }
@@ -414,6 +424,7 @@ impl<C: Component> Sampling for GridCenterSampling<C> {
                     }
                 }
                 drop(_span);
+                debug!("done with index (in vecbuff): {:?}", rd);
             }
         }
     }

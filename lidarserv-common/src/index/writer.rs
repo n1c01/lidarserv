@@ -12,7 +12,7 @@ use crate::{
     io::PointIoError,
     lru_cache::pager::CacheCleanupError,
 };
-use log::{debug, info};
+use log::{info};
 use nalgebra::Point3;
 use pasture_core::containers::{BorrowedBuffer, BorrowedBufferExt, InterleavedBuffer, OwningBuffer, VectorBuffer};
 use std::{
@@ -265,6 +265,7 @@ impl OctreeWorkerThread {
                 let mut lock = self.inboxes.lock().unwrap();
                 lock.unlock(node_id);
 
+                //TODO: update child tasks
                 if let Some(tasks) = child_tasks {
                     for (child_id, child_insertion_points) in tasks {
                         if !child_insertion_points.is_empty() {
@@ -375,9 +376,7 @@ impl OctreeWorkerThread {
         // handle new points
         let _span = span!("OctreeWorkerThread::writer_task - insert new points");
         node.reset_dirty();
-        debug!("OctreeWorkerThread::writer_task - calling insert_multi() on node:");
         node.insert_multi(&task.insertion_points);
-        debug!("OctreeWorkerThread::writer_task - calling update_multi() on node:");
         node.update_multi(&task.update_points);
         let should_notify_clients = node.is_dirty();
 
