@@ -23,8 +23,6 @@ use crate::color_threads::t5_send_points::thread_5_send_points;
 mod cli;
 mod color_threads;
 
-//TODO: check underscored parameters at the end. They are not used.
-
 fn main() -> ExitCode {
     // arg parsing
     let args = AppOptions::parse_from(get_unused_args());
@@ -121,7 +119,7 @@ fn run(args: AppOptions) -> Result<(), Error> {
     };
 
     //LidarServ query Thread, that queries the frustum to retrieve the points from the lidarserv server
-    let (points_tx, points_rx) = mpsc::channel(); //todo!(rename more precise)
+    let (points_tx, points_rx) = mpsc::channel();
     let exit_tx2 = exit_tx.clone();
     let status2 = Arc::clone(&status);
     let args2 = args.clone();
@@ -237,7 +235,6 @@ fn run(args: AppOptions) -> Result<(), Error> {
     stop_source2.cancel();
     status.shutdown.store(true, Ordering::Relaxed);
 
-    //todo: think about terminating threads forcfully after x amount of time. (e.g. 10 seconds)
     debug!("stopping ros");
     //stop ROS read connection Thread
     commands_tx.send(color_threads::t0_ros::Command::Exit).ok();

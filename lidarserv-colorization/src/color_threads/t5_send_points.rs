@@ -44,7 +44,6 @@ pub async fn thread_5_send_points(
             let r = u16::from_le_bytes(color_raw[0..2].try_into().unwrap());
             let g = u16::from_le_bytes(color_raw[2..4].try_into().unwrap());
             let b = u16::from_le_bytes(color_raw[4..6].try_into().unwrap());
-            //todo handle previous colors
             let color = Color::new(r, g, b);
             debug!("index: {:?}, point color: {:?}", i, color);
         }
@@ -54,8 +53,6 @@ pub async fn thread_5_send_points(
 
 
         update_client.update_points_global_coordinates (&colorized_points_vector).await?
-        // todo check if global coordinates is right
-        
     }
     //shutdown client
     shutdown_tx.send(()).ok();

@@ -95,7 +95,6 @@ pub async fn thread_2_send_frustum(
                     debug!("image_id {:?}: Received update: {:?}", current_image_id, update);
 
                     nodes_hashmap.insert(update.node_id, update.points);
-                    //TODO Hashmap mit node id und vectorbuffer um zwischenwerte zu vergleiche viewer main
                 }
                 PartialResult::Complete => {
                     debug!("hashmap keys of image with id {:?} : {:?}", current_image_id, nodes_hashmap.keys());

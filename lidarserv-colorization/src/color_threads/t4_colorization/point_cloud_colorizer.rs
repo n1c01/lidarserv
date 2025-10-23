@@ -37,7 +37,6 @@ impl PointCloudColorizer {
             return Err("Pointcloud does not have a color attribute");
         };
 
-        //todo use seperate point buffer for color values
         let mut position: Vec<u8> = vec![0; POSITION_3D.size() as usize];
         let mut color_raw: Vec<u8> = vec![0; COLOR_RGB.size() as usize];
         for i in 0..vector_buffer.len() {
@@ -230,8 +229,6 @@ impl PointCloudColorizer {
         point: &Point,
         view_projection: OMatrix<f64, Const<4>, U4>,
     ) -> Result<Vector2<f64>, &'static str> {
-        //TODO: Do checks
-
         //TODO: Check if point is in bounding box
 
         let projected_point =
@@ -256,7 +253,6 @@ impl PointCloudColorizer {
     /// - "Position out of bounds (x < 0)"
     /// - "Position out of bounds (y > picture)"
     fn find_color(&self, position: Vector2<f64>) -> Result<Color, &'static str> {
-        //TODO: Do checks
         if position.x >= self.dynamic_image.width() as f64 {
             return Err("Position out of bounds (x > picture)");
         } else if position.x < 0. {

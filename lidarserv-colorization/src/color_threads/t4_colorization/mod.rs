@@ -7,5 +7,5 @@ pub mod t4_managing_colorization;
 #[derive(Debug)]
 pub struct ColorizationData {
     pub image_data: ImageData,
-    pub point_data: VectorBuffer, //todo! validate type
+    pub point_data: VectorBuffer,
 }

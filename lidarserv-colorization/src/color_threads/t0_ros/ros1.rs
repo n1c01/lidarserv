@@ -72,7 +72,6 @@ pub(crate) fn ros_thread(
     };
     let odometry_topic = app_options.odometry_topic;
     let status2 = Arc::clone(&status);
-    //let odometry: Atomic<Odometry> = Default::default(); //todo mal schauen (generic atomic unstable)
     let odometry_calllback = move |odometry_msg: messages::nav_msgs::Odometry |{
         status2.t0_ros_odometry_msg_count.fetch_add(1,Ordering::Relaxed);
 
